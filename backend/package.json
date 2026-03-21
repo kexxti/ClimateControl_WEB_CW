@@ -1,0 +1,15 @@
+{
+    "name": "backend",
+    "private": true,
+    "version": "0.0.0",
+    "scripts": {
+        "dev": "ts-node-dev --rs ./src/index.ts",
+        "build": "tsc --build ./tsconfig.json"
+    },
+    "devDependencies": {
+        "@types/node": "20.5.0",
+        "ts-node": "10.9.1",
+        "ts-node-dev": "2.0.0",
+        "typescript": "5.1.6"
+    }
+}
