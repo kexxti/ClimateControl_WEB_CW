@@ -1,0 +1,12 @@
+const getRouteParams = <T extends Record<string, boolean>>(object: T) => {
+  return Object.keys(object).reduce((acc, key) => ({ ...acc, [key]: `:${key}` }), {}) as Record<keyof T, string>;
+};
+
+export const getDashboard = () => '/';
+
+export const getRoomParams = getRouteParams({ roomID: true });
+export type getRoomParams = typeof getRoomParams;
+export const getRoom = ({ roomID }: { roomID: String }) => `/rooms/${roomID}`;
+
+// export const getRoomParams = { roomID: ':roomID' }
+// export const getRoom = ({ roomID }: { roomID: String }) => `/rooms/${roomID}`;

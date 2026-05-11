@@ -1,4 +1,6 @@
+import { getRoom } from '../../lib/routes';
 import { trpc } from '../../lib/trpc'
+import { Link } from 'react-router-dom';
 
 
 export const DashboardPage = () => {
@@ -19,9 +21,11 @@ export const DashboardPage = () => {
       <h1>Dashboard</h1>
       {data.data.map((component) => {
         return (
-          <div key={component.id}>
-            <h2>{component.name}</h2>
-            <p>{component.description}</p>
+          <div key={component.name}>
+            <h2><Link to={getRoom({ roomID: component.roomID })}>
+                  {component.name}
+                </Link></h2>
+            <p>{component.temperature}</p>
           </div>
         );
       })}

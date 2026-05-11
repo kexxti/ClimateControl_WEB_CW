@@ -1,5 +1,17 @@
 {
-    "name": "WEB_CW",
-    "private": true,
-    "version": "0.0.0"
+  "name": "WEB_CW",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "b": "pnpm --filter @WEB_CW/backend",
+    "w": "pnpm --filter @WEB_CW/webapp",
+    "dev": "pnpm -r --parallel dev",
+    "types": "pnpm -r --parallel types"
+  },
+  "devDependencies": {
+    "rimraf": "5.0.1",
+    "ts-node": "10.9.1",
+    "ts-node-dev": "2.0.0",
+    "typescript": "5.1.6"
+  }
 }
