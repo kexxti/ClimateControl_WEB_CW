@@ -1,0 +1,348 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+enum AlgorithmCode {
+  PID
+  ON_OFF
+  TIME
+  ML
+}
+
+enum RoomStatus {
+  heating
+  cooling
+  stable
+  offline
+  error
+}
+
+enum ClimateMode {
+  standard
+  energy_saving
+  night
+  manual
+}
+
+enum ControlMode {
+  local
+  remote
+  failsafe
+}
+
+enum CommandType {
+  SET_SETPOINT
+  SET_ALGORITHM
+  SET_PID_PARAMS
+  SET_MODE
+  SET_CONTROL_MODE
+  SET_CYCLE_CONFIG
+  SET_SAFETY_LIMITS
+  REBOOT_DEVICE
+  REQUEST_STATUS
+}
+
+enum CommandStatus {
+  pending
+  sent
+  acknowledged
+  failed
+  expired
+}
+
+enum SettingScope {
+  system
+  user
+  room
+}
+
+enum EventSeverity {
+  info
+  warning
+  error
+  critical
+}
+
+enum LogLevel {
+  debug
+  info
+  warning
+  error
+  critical
+}
+
+enum SetpointSource {
+  manual
+  schedule
+  algorithm
+  system
+}
+
+model User {
+  id             BigInt          @id @default(autoincrement())
+  login          String          @unique @db.VarChar(120)
+  passwordHash   String          @map("password_hash") @db.VarChar(255)
+  role           UserRole        @default(user)
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  lastLoginAt    DateTime?       @map("last_login_at") @db.Timestamptz(3)
+  settings       UserSetting[]
+  roomSettings   RoomSetting[]
+  algorithmSets  RoomAlgorithmParameter[]
+  setpoints      Setpoint[]
+  commands       DeviceCommand[]
+  events         Event[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model UserSetting {
+  id        BigInt       @id @default(autoincrement())
+  userId    BigInt       @map("user_id")
+  key       String       @db.VarChar(120)
+  value     Json
+  scope     SettingScope @default(user)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@map("user_settings")
+}
+
+model SystemSetting {
+  id        BigInt       @id @default(autoincrement())
+  key       String       @unique @db.VarChar(120)
+  value     Json
+  scope     SettingScope @default(system)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("system_settings")
+}
+
+model Room {
+  id                  BigInt                   @id @default(autoincrement())
+  name                String                   @db.VarChar(160)
+  location            String?                  @db.VarChar(255)
+  floor               Int?
+  isActive            Boolean                  @default(true) @map("is_active")
+  createdAt           DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  device              Device?
+  settings            RoomSetting?
+  algorithmParameters RoomAlgorithmParameter[]
+  measurements        Measurement[]
+  setpoints           Setpoint[]
+  commands            DeviceCommand[]
+  events              Event[]
+  deviceLogs          DeviceLog[]
+
+  @@index([name])
+  @@index([floor])
+  @@map("rooms")
+}
+
+model Device {
+  id              BigInt          @id @default(autoincrement())
+  roomId          BigInt          @unique @map("room_id")
+  deviceUid       String          @unique @map("device_uid") @db.VarChar(120)
+  name            String          @db.VarChar(160)
+  apiKeyHash      String          @map("api_key_hash") @db.VarChar(255)
+  firmwareVersion String?         @map("firmware_version") @db.VarChar(80)
+  ipAddress       String?         @map("ip_address") @db.VarChar(80)
+  lastSeenAt      DateTime?       @map("last_seen_at") @db.Timestamptz(3)
+  isOnline        Boolean         @default(false) @map("is_online")
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  room            Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  measurements    Measurement[]
+  commands        DeviceCommand[]
+  events          Event[]
+  logs            DeviceLog[]
+
+  @@index([lastSeenAt])
+  @@map("devices")
+}
+
+model RegulationAlgorithm {
+  id                  BigInt                   @id @default(autoincrement())
+  code                AlgorithmCode            @unique
+  name                String                   @db.VarChar(160)
+  description         String?                  @db.VarChar(500)
+  isEnabled           Boolean                  @default(true) @map("is_enabled")
+  createdAt           DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  roomSettings        RoomSetting[]            @relation("CurrentAlgorithm")
+  desiredRoomSettings RoomSetting[]            @relation("DesiredAlgorithm")
+  roomParameters      RoomAlgorithmParameter[]
+  measurements        Measurement[]
+
+  @@map("regulation_algorithms")
+}
+
+model RoomSetting {
+  id                 BigInt               @id @default(autoincrement())
+  roomId             BigInt               @unique @map("room_id")
+  currentSetpoint    Decimal              @map("current_setpoint") @db.Decimal(5, 2)
+  desiredSetpoint    Decimal?             @map("desired_setpoint") @db.Decimal(5, 2)
+  algorithmId        BigInt               @map("algorithm_id")
+  desiredAlgorithmId BigInt?              @map("desired_algorithm_id")
+  mode               ClimateMode          @default(standard)
+  controlMode        ControlMode          @default(remote) @map("control_mode")
+  status             RoomStatus           @default(stable)
+  criticalTemperature Decimal             @default(35.0) @map("critical_temperature") @db.Decimal(5, 2)
+  updatedByUserId    BigInt?              @map("updated_by_user_id")
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  room               Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  algorithm          RegulationAlgorithm  @relation("CurrentAlgorithm", fields: [algorithmId], references: [id])
+  desiredAlgorithm   RegulationAlgorithm? @relation("DesiredAlgorithm", fields: [desiredAlgorithmId], references: [id])
+  updatedByUser      User?                @relation(fields: [updatedByUserId], references: [id])
+
+  @@map("room_settings")
+}
+
+model RoomAlgorithmParameter {
+  id              BigInt              @id @default(autoincrement())
+  roomId          BigInt              @map("room_id")
+  algorithmId     BigInt              @map("algorithm_id")
+  kp              Decimal?            @db.Decimal(8, 4)
+  ki              Decimal?            @db.Decimal(8, 4)
+  kd              Decimal?            @db.Decimal(8, 4)
+  hysteresis      Decimal?            @db.Decimal(8, 4)
+  isActive        Boolean             @default(true) @map("is_active")
+  createdByUserId BigInt?             @map("created_by_user_id")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  room            Room                @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  algorithm       RegulationAlgorithm @relation(fields: [algorithmId], references: [id])
+  createdByUser   User?               @relation(fields: [createdByUserId], references: [id])
+
+  @@index([roomId])
+  @@index([algorithmId])
+  @@unique([roomId, algorithmId, isActive])
+  @@map("room_algorithm_parameters")
+}
+
+model Measurement {
+  id                 BigInt               @id @default(autoincrement())
+  roomId             BigInt               @map("room_id")
+  deviceId           BigInt               @map("device_id")
+  temperature        Decimal              @db.Decimal(5, 2)
+  humidity           Decimal?             @db.Decimal(5, 2)
+  outsideTemperature Decimal?             @map("outside_temperature") @db.Decimal(5, 2)
+  power              Decimal?             @db.Decimal(8, 3)
+  setpointValue      Decimal?             @map("setpoint_value") @db.Decimal(5, 2)
+  heaterState        Boolean?             @map("heater_state")
+  coolerState        Boolean?             @map("cooler_state")
+  algorithmId        BigInt?              @map("algorithm_id")
+  deviceSequence     BigInt?              @map("device_sequence")
+  deviceUptimeMs     BigInt?              @map("device_uptime_ms")
+  rawPayload         Json?                @map("raw_payload")
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  receivedAt         DateTime             @default(now()) @map("received_at") @db.Timestamptz(3)
+  room               Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  device             Device               @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  algorithm          RegulationAlgorithm? @relation(fields: [algorithmId], references: [id])
+
+  @@index([roomId, createdAt])
+  @@index([deviceId, createdAt])
+  @@index([deviceId, receivedAt])
+  @@index([createdAt])
+  @@unique([deviceId, deviceSequence])
+  @@map("measurements")
+}
+
+model Setpoint {
+  id              BigInt         @id @default(autoincrement())
+  roomId          BigInt         @map("room_id")
+  value           Decimal        @db.Decimal(5, 2)
+  source          SetpointSource @default(system)
+  createdByUserId BigInt?        @map("created_by_user_id")
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  room            Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdByUser   User?          @relation(fields: [createdByUserId], references: [id])
+
+  @@index([roomId, createdAt])
+  @@index([createdByUserId])
+  @@map("setpoints")
+}
+
+model DeviceCommand {
+  id              BigInt        @id @default(autoincrement())
+  deviceId        BigInt        @map("device_id")
+  roomId          BigInt        @map("room_id")
+  type            CommandType
+  payload         Json
+  status          CommandStatus @default(pending)
+  createdByUserId BigInt?       @map("created_by_user_id")
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  sentAt          DateTime?     @map("sent_at") @db.Timestamptz(3)
+  acknowledgedAt  DateTime?     @map("acknowledged_at") @db.Timestamptz(3)
+  failedAt        DateTime?     @map("failed_at") @db.Timestamptz(3)
+  expiresAt       DateTime?     @map("expires_at") @db.Timestamptz(3)
+  errorMessage    String?       @map("error_message") @db.VarChar(500)
+  device          Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  room            Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdByUser   User?         @relation(fields: [createdByUserId], references: [id])
+
+  @@index([deviceId, status, createdAt])
+  @@index([roomId, createdAt])
+  @@index([createdByUserId])
+  @@map("device_commands")
+}
+
+model Event {
+  id        BigInt        @id @default(autoincrement())
+  roomId    BigInt?       @map("room_id")
+  deviceId  BigInt?       @map("device_id")
+  userId    BigInt?       @map("user_id")
+  type      String        @db.VarChar(120)
+  severity  EventSeverity @default(info)
+  message   String        @db.VarChar(500)
+  payload   Json?
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  room      Room?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  device    Device?       @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([roomId, createdAt])
+  @@index([deviceId, createdAt])
+  @@index([severity, createdAt])
+  @@map("events")
+}
+
+model DeviceLog {
+  id              BigInt   @id @default(autoincrement())
+  deviceId        BigInt   @map("device_id")
+  roomId          BigInt?  @map("room_id")
+  level           LogLevel
+  type            String   @db.VarChar(120)
+  message         String   @db.VarChar(500)
+  payload         Json?
+  deviceSequence  BigInt?  @map("device_sequence")
+  deviceUptimeMs  BigInt?  @map("device_uptime_ms")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  receivedAt      DateTime @default(now()) @map("received_at") @db.Timestamptz(3)
+  device          Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  room            Room?    @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  @@index([deviceId, receivedAt])
+  @@index([roomId, receivedAt])
+  @@index([level, receivedAt])
+  @@index([type, receivedAt])
+  @@map("device_logs")
+}
