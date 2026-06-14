@@ -246,6 +246,29 @@ $breakpoint: '<=1100px';
   }
 }
 
+.dateFields {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+
+  label {
+    display: grid;
+    gap: 6px;
+    color: #2a374b;
+    font-weight: 700;
+  }
+
+  input {
+    min-height: 38px;
+    padding: 0 10px;
+    border: 1px solid #ccd8e4;
+    border-radius: 8px;
+    color: #172033;
+    background: #fff;
+    font: inherit;
+  }
+}
+
 .state {
   display: grid;
   min-height: 280px;

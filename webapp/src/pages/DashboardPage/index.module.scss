@@ -197,7 +197,7 @@ $breakpoint: '<=980px';
 
 .table {
   width: 100%;
-  min-width: 720px;
+  min-width: 820px;
   border-collapse: collapse;
 
   th,
@@ -263,8 +263,77 @@ $breakpoint: '<=980px';
   background: #dcfce7;
 }
 
+.offline {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.error {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
 .chartsCard {
+  margin-bottom: 20px;
   padding-bottom: 22px;
+}
+
+.eventsCard {
+  overflow: hidden;
+}
+
+.eventsList {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 18px 22px 22px;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+  }
+
+  strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #172033;
+  }
+
+  small {
+    color: #64748b;
+  }
+}
+
+.eventSeverity {
+  min-width: 72px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.info {
+  color: #0f766e;
+  background: #ccfbf1;
+}
+
+.warning {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.critical {
+  color: #991b1b;
+  background: #fee2e2;
 }
 
 .chartsGrid {

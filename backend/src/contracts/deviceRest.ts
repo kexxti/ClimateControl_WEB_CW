@@ -106,6 +106,10 @@ export const telemetryBatchBodySchema = deviceMessageBaseSchema.extend({
   readings: z.array(telemetryReadingSchema).min(1),
 });
 
+export const telemetrySingleBodySchema = deviceMessageBaseSchema.extend({
+  reading: telemetryReadingSchema,
+});
+
 export const stateReportBodySchema = deviceMessageBaseSchema.extend({
   state: z.object({
     controlMode: controlModeSchema,

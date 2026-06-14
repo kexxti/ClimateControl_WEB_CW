@@ -1,5 +1,6 @@
 import type { AlgorithmCode } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { buildRoomHistoryPoints } from '../services/historyService';
 import type { Algorithm, PidParams, Room, RoomHistoryPoint } from '../types/climate';
 
 const roomInclude = {
@@ -26,6 +27,12 @@ const roomInclude = {
     take: 24,
     orderBy: {
       createdAt: 'desc' as const,
+    },
+  },
+  setpoints: {
+    take: 50,
+    orderBy: {
+      createdAt: 'asc' as const,
     },
   },
 };
@@ -82,26 +89,16 @@ const mapRoom = (room: RoomRecord): Room => {
 };
 
 const mapHistory = (room: RoomRecord): RoomHistoryPoint[] => {
-  const history = [...room.measurements].reverse().map((measurement) => ({
-    time: measurement.createdAt.toLocaleTimeString('ru-RU', {
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
-    temp: Number(measurement.temperature),
-    setpoint: Number(measurement.setpointValue ?? room.settings?.currentSetpoint ?? 0),
-  }));
+  const currentSetpoint = Number(room.settings?.currentSetpoint ?? 0);
+  const latestMeasurement = room.measurements[0];
 
-  if (history.length > 0) {
-    return history;
-  }
-
-  return [
-    {
-      time: 'Сейчас',
-      temp: Number(room.settings?.currentSetpoint ?? 0),
-      setpoint: Number(room.settings?.currentSetpoint ?? 0),
-    },
-  ];
+  return buildRoomHistoryPoints({
+    measurements: room.measurements,
+    setpoints: room.setpoints,
+    currentTemp: Number(latestMeasurement?.temperature ?? currentSetpoint),
+    currentSetpoint,
+    settingsUpdatedAt: room.settings?.updatedAt,
+  });
 };
 
 const mapPidParams = (room: RoomRecord): PidParams => {
@@ -216,13 +213,28 @@ export const updateRoomSetpoint = async (roomID: string, setpointValue: number) 
           },
     });
 
-    await tx.setpoint.create({
-      data: {
-        roomId: room.id,
-        value: setpointValue,
-        source: 'system',
-      },
-    });
+    if (isRemote) {
+      await tx.setpoint.create({
+        data: {
+          roomId: room.id,
+          value: setpointValue,
+          source: 'system',
+        },
+      });
+
+      const latestMeasurement = room.measurements[0];
+
+      if (latestMeasurement) {
+        await tx.measurement.update({
+          where: {
+            id: latestMeasurement.id,
+          },
+          data: {
+            setpointValue,
+          },
+        });
+      }
+    }
 
     if (isRemote) {
       await tx.deviceCommand.create({

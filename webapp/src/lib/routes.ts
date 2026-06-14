@@ -5,6 +5,8 @@ const getRouteParams = <T extends Record<string, boolean>>(object: T) => {
 export const getDashboard = () => '/dashboard';
 export const getStatistics = () => '/statistics';
 export const getSettings = () => '/settings';
+export const getLogs = () => '/logs';
+export const getLogin = () => '/login';
 
 export const getRoomParams = getRouteParams({ roomID: true });
 export type getRoomParams = typeof getRoomParams;

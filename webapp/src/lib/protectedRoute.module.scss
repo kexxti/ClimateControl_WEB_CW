@@ -1,0 +1,30 @@
+.state {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  color: #526075;
+  background: #eef3f7;
+  font-size: 16px;
+}
+
+.backendError {
+  display: grid;
+  gap: 8px;
+  max-width: 460px;
+  padding: 22px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(25, 39, 64, 0.08);
+  text-align: center;
+
+  strong {
+    color: #991b1b;
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  span {
+    color: #526075;
+  }
+}

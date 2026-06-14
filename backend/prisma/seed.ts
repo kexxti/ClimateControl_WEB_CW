@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { hashPassword } from '../src/lib/auth';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -12,22 +13,33 @@ const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 const main = async () => {
+  const seedBaseTime = new Date();
+  seedBaseTime.setMinutes(0, 0, 0);
+
   const admin = await prisma.user.upsert({
     where: { login: 'admin' },
-    update: {},
+    update: {
+      passwordHash: hashPassword('admin123'),
+      role: 'admin',
+      isActive: true,
+    },
     create: {
       login: 'admin',
-      passwordHash: 'dev-only-change-me-admin',
+      passwordHash: hashPassword('admin123'),
       role: 'admin',
     },
   });
 
   const user = await prisma.user.upsert({
     where: { login: 'user' },
-    update: {},
+    update: {
+      passwordHash: hashPassword('user123'),
+      role: 'user',
+      isActive: true,
+    },
     create: {
       login: 'user',
-      passwordHash: 'dev-only-change-me-user',
+      passwordHash: hashPassword('user123'),
       role: 'user',
     },
   });
@@ -81,7 +93,7 @@ const main = async () => {
     { name: 'Кабинет 302', location: 'Корпус 1', floor: 3, setpoint: 22, temperature: 24.1 },
   ];
 
-  for (const roomSeed of rooms) {
+  for (const [roomIndex, roomSeed] of rooms.entries()) {
     const existingRoom = await prisma.room.findFirst({
       where: { name: roomSeed.name },
     });
@@ -162,30 +174,65 @@ const main = async () => {
     });
 
     const measurementSequence = BigInt(roomNumber) * BigInt(1000);
+    const roomTemperatureBias = (roomIndex - 2) * 0.15;
 
-    await prisma.measurement.upsert({
-      where: {
-        deviceId_deviceSequence: {
-          deviceId: device.id,
-          deviceSequence: measurementSequence,
+    for (let index = 0; index < 24; index += 1) {
+      const createdAt = new Date(seedBaseTime.getTime() - (23 - index) * 60 * 60 * 1000);
+      const dailyWave = Math.sin((index / 23) * Math.PI * 2) * 0.65;
+      const controlNoise = (index % 4) * 0.08 - 0.12;
+      const temperature = Number((roomSeed.temperature + roomTemperatureBias + dailyWave + controlNoise).toFixed(1));
+      const sequence = measurementSequence + BigInt(index);
+
+      await prisma.measurement.upsert({
+        where: {
+          deviceId_deviceSequence: {
+            deviceId: device.id,
+            deviceSequence: sequence,
+          },
         },
-      },
-      update: {
-        temperature: roomSeed.temperature,
-        setpointValue: roomSeed.setpoint,
-        heaterState: roomSeed.temperature < roomSeed.setpoint,
-      },
-      create: {
-        roomId: room.id,
+        update: {
+          temperature,
+          setpointValue: roomSeed.setpoint,
+          heaterState: temperature < roomSeed.setpoint,
+          createdAt,
+          receivedAt: createdAt,
+        },
+        create: {
+          roomId: room.id,
+          deviceId: device.id,
+          temperature,
+          setpointValue: roomSeed.setpoint,
+          heaterState: temperature < roomSeed.setpoint,
+          algorithmId: pidAlgorithm.id,
+          deviceSequence: sequence,
+          deviceUptimeMs: BigInt(120000 + index * 60 * 60 * 1000),
+          createdAt,
+          receivedAt: createdAt,
+        },
+      });
+    }
+
+    const logSequence = measurementSequence + BigInt(900);
+    const existingDeviceLog = await prisma.deviceLog.findFirst({
+      where: {
         deviceId: device.id,
-        temperature: roomSeed.temperature,
-        setpointValue: roomSeed.setpoint,
-        heaterState: roomSeed.temperature < roomSeed.setpoint,
-        algorithmId: pidAlgorithm.id,
-        deviceSequence: measurementSequence,
-        deviceUptimeMs: BigInt(120000),
+        deviceSequence: logSequence,
       },
     });
+
+    if (!existingDeviceLog) {
+      await prisma.deviceLog.create({
+        data: {
+          roomId: room.id,
+          deviceId: device.id,
+          level: roomNumber === '203' ? 'info' : 'warning',
+          type: roomNumber === '203' ? 'heartbeat' : 'device_offline',
+          message: roomNumber === '203' ? 'Seed heartbeat received' : 'Seed offline warning',
+          deviceSequence: logSequence,
+          deviceUptimeMs: BigInt(180000),
+        },
+      });
+    }
   }
 
   await prisma.systemSetting.upsert({
@@ -224,14 +271,31 @@ const main = async () => {
     },
   });
 
-  await prisma.event.create({
-    data: {
-      userId: user.id,
-      type: 'seed_created',
-      severity: 'info',
-      message: 'Initial seed data created',
+  await prisma.systemSetting.upsert({
+    where: { key: 'telemetry_timeout_seconds' },
+    update: { value: 45 },
+    create: {
+      key: 'telemetry_timeout_seconds',
+      value: 45,
     },
   });
+
+  const existingSeedEvent = await prisma.event.findFirst({
+    where: {
+      type: 'seed_created',
+    },
+  });
+
+  if (!existingSeedEvent) {
+    await prisma.event.create({
+      data: {
+        userId: user.id,
+        type: 'seed_created',
+        severity: 'info',
+        message: 'Initial seed data created',
+      },
+    });
+  }
 };
 
 main()

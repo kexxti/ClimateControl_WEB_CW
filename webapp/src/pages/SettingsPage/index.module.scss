@@ -48,6 +48,25 @@ $breakpoint: '<=820px';
   }
 }
 
+.headerActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  @include media($breakpoint) {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+.userState {
+  display: block;
+  margin-top: 10px;
+  color: #0f766e;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .panel {
   overflow: hidden;
   border: 1px solid #dce5ef;
@@ -132,10 +151,68 @@ $breakpoint: '<=820px';
     &:hover {
       background: #7bd9cd;
     }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
   }
 
   @include media('<=560px') {
     grid-template-columns: 1fr;
+  }
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0 34px 30px;
+
+  button {
+    min-height: 42px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 8px;
+    color: #0f2f2d;
+    background: #9de5db;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: #7bd9cd;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+  }
+
+  @include media($breakpoint) {
+    padding: 0 22px 22px;
+  }
+}
+
+.feedback {
+  color: #53627a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.roleNotice {
+  margin: 22px 34px 0;
+  padding: 12px 14px;
+  border: 1px solid #facc15;
+  border-radius: 8px;
+  color: #713f12;
+  background: #fef9c3;
+  font-weight: 800;
+
+  @include media($breakpoint) {
+    margin: 22px 22px 0;
   }
 }
 
@@ -179,4 +256,60 @@ $breakpoint: '<=820px';
   place-items: center;
   color: #526075;
   font-size: 16px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  padding: 0 34px 30px;
+
+  @include media($breakpoint) {
+    padding: 0 22px 22px;
+  }
+}
+
+.usersTable {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #e6edf4;
+    text-align: left;
+  }
+
+  th {
+    color: #506078;
+    font-size: 13px;
+    font-weight: 800;
+    background: #edf2f7;
+  }
+
+  select {
+    min-height: 38px;
+    padding: 0 10px;
+    border: 1px solid #ccd8e4;
+    border-radius: 8px;
+    color: #172033;
+    background: #fff;
+    font: inherit;
+  }
+
+  button {
+    min-height: 38px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    color: #0f2f2d;
+    background: #9de5db;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+  }
 }

@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import { algorithmSchema, climateModeSchema, controlModeSchema, isoDateStringSchema, roomStatusSchema } from './common';
+import {
+  algorithmSchema,
+  climateModeSchema,
+  controlModeSchema,
+  eventSeveritySchema,
+  isoDateStringSchema,
+  logLevelSchema,
+  roomStatusSchema,
+  userRoleSchema,
+} from './common';
 
 export const roomSchema = z.object({
   id: z.number().int().positive().optional(),
@@ -28,10 +37,10 @@ export const buildingHistoryPointSchema = z.object({
 });
 
 export const pidParamsSchema = z.object({
-  kp: z.number(),
-  ki: z.number(),
-  kd: z.number(),
-  hysteresis: z.number(),
+  kp: z.number().min(0).max(100),
+  ki: z.number().min(0).max(100),
+  kd: z.number().min(0).max(100),
+  hysteresis: z.number().min(0).max(20),
 });
 
 export const getRoomInputSchema = z.object({
@@ -70,6 +79,17 @@ export const dashboardOutputSchema = z.object({
   selectedRoomHistory: z.array(roomHistoryPointSchema),
   roomHistories: z.record(z.string(), z.array(roomHistoryPointSchema)),
   buildingHistory: z.array(buildingHistoryPointSchema),
+  recentEvents: z.array(
+    z.object({
+      id: z.number().int().positive(),
+      type: z.string(),
+      severity: eventSeveritySchema,
+      message: z.string(),
+      createdAt: isoDateStringSchema,
+      roomName: z.string().nullable(),
+      deviceUid: z.string().nullable(),
+    }),
+  ),
 });
 
 export const statisticsOutputSchema = dashboardOutputSchema.extend({
@@ -112,10 +132,74 @@ export const settingsOutputSchema = z.object({
   pidParams: pidParamsSchema,
 });
 
+export const updateApplicationSettingsInputSchema = z.object({
+  theme: z.string().min(1),
+  refreshInterval: z.string().min(1),
+  connectionProfile: z.string().min(1),
+});
+
+export const updateSystemSettingsInputSchema = z.object({
+  algorithm: algorithmSchema,
+  mode: climateModeSchema,
+  pidPreset: z.string().min(1),
+  applyTarget: z.string().min(1),
+  pidParams: pidParamsSchema,
+});
+
+export const applyAlgorithmToRoomsInputSchema = z.object({
+  algorithm: algorithmSchema,
+  target: z.enum(['all', 'selected', 'floor']).default('all'),
+  roomIDs: z.array(z.string().min(1)).optional(),
+  floor: z.number().int().optional(),
+});
+
 export const logsFilterInputSchema = z.object({
   roomID: z.string().optional(),
   deviceUid: z.string().optional(),
-  level: z.string().optional(),
+  level: logLevelSchema.optional(),
   dateFrom: isoDateStringSchema.optional(),
   dateTo: isoDateStringSchema.optional(),
+  limit: z.number().int().positive().max(200).default(100),
 });
+
+export const recentEventsInputSchema = z
+  .object({
+    limit: z.number().int().positive().max(100).default(20),
+  })
+  .optional();
+
+export const loginInputSchema = z.object({
+  login: z.string().min(1).max(120),
+  password: z.string().min(1).max(200),
+});
+
+export const changePasswordInputSchema = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(6).max(200),
+});
+
+export const createUserInputSchema = z.object({
+  login: z.string().min(3).max(120),
+  password: z.string().min(6).max(200),
+  role: userRoleSchema.default('user'),
+});
+
+export const updateUserRoleInputSchema = z.object({
+  userId: z.number().int().positive(),
+  role: userRoleSchema,
+});
+
+export const deactivateUserInputSchema = z.object({
+  userId: z.number().int().positive(),
+});
+
+export const statisticsPeriodSchema = z.enum(['day', 'week', 'month', 'custom']);
+
+export const statisticsAnalyticsInputSchema = z
+  .object({
+    roomIDs: z.array(z.string().min(1)).optional(),
+    period: statisticsPeriodSchema.default('day'),
+    dateFrom: isoDateStringSchema.optional(),
+    dateTo: isoDateStringSchema.optional(),
+  })
+  .optional();

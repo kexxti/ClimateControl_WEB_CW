@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Link } from 'react-router-dom';
-import { getRoom, getStatistics } from '../../lib/routes';
+import { getLogs, getRoom, getStatistics } from '../../lib/routes';
 import { trpc } from '../../lib/trpcClient';
 import styles from './index.module.scss';
 
-type RoomStatus = 'heating' | 'cooling' | 'stable';
+type RoomStatus = 'heating' | 'cooling' | 'stable' | 'offline' | 'error';
 type Algorithm = 'PID' | 'On/Off' | 'Time' | 'ML';
 
 type Room = {
@@ -15,6 +15,7 @@ type Room = {
   setpoint: number;
   algorithm: Algorithm;
   status: RoomStatus;
+  controlMode?: 'local' | 'remote' | 'failsafe';
 };
 
 type RoomHistoryPoint = {
@@ -33,6 +34,14 @@ const statusLabel: Record<RoomStatus, string> = {
   heating: 'Нагрев',
   cooling: 'Охлажд.',
   stable: 'Поддержка',
+  offline: 'Оффлайн',
+  error: 'Ошибка',
+};
+
+const controlModeLabel = {
+  local: 'Local',
+  remote: 'Remote',
+  failsafe: 'Failsafe',
 };
 
 const formatTemp = (value: number) => `${value.toFixed(1)}°C`;
@@ -190,7 +199,7 @@ const BuildingLineChart = ({ data }: { data: BuildingHistoryPoint[] }) => {
 };
 
 export const DashboardPage = () => {
-  const { data, error, isLoading, isFetching, isError } = trpc.getDashboardData.useQuery();
+  const { data, error, isLoading, isFetching, isError } = trpc.dashboard.getSummary.useQuery();
   const [selectedRoomID, setSelectedRoomID] = useState<string | null>(null);
   const selectedRoom = data?.rooms.find((room) => room.roomID === selectedRoomID) ?? data?.rooms[0] ?? null;
   const selectedRoomHistory = selectedRoom
@@ -217,6 +226,9 @@ export const DashboardPage = () => {
           <p>Мониторинг помещений, уставок и алгоритмов климат-контроля</p>
         </div>
         <div className={styles.headerActions}>
+          <Link className={styles.statisticsLink} to={getLogs()}>
+            Логи
+          </Link>
           <Link className={styles.statisticsLink} to={getStatistics()}>
             Статистика
           </Link>
@@ -269,6 +281,7 @@ export const DashboardPage = () => {
                   <th>Текущая температура</th>
                   <th>Уставка</th>
                   <th>Алгоритм</th>
+                  <th>Режим</th>
                   <th>Статус</th>
                 </tr>
               </thead>
@@ -287,8 +300,9 @@ export const DashboardPage = () => {
                     <td>{formatTemp(room.currentTemp)}</td>
                     <td>{formatTemp(room.setpoint)}</td>
                     <td>{room.algorithm}</td>
+                    <td>{controlModeLabel[room.controlMode ?? 'remote']}</td>
                     <td>
-                      <span className={`${styles.status} ${styles[room.status]}`}>{statusLabel[room.status]}</span>
+                      <span className={`${styles.status} ${styles[room.status]}`}>{statusLabel[room.status as RoomStatus]}</span>
                     </td>
                   </tr>
                 ))}
@@ -313,6 +327,26 @@ export const DashboardPage = () => {
             <figcaption>Общие данные за день</figcaption>
           </figure>
         </div>
+      </section>
+
+      <section className={`${styles.card} ${styles.eventsCard}`}>
+        <div className={styles.cardHeader}>
+          <h2>Последние события</h2>
+          <span>{data.recentEvents.length} записей</span>
+        </div>
+        <ul className={styles.eventsList}>
+          {data.recentEvents.map((event) => (
+            <li key={event.id}>
+              <span className={`${styles.eventSeverity} ${styles[event.severity]}`}>{event.severity}</span>
+              <div>
+                <strong>{event.message}</strong>
+                <small>
+                  {event.roomName ?? 'Система'} · {new Date(event.createdAt).toLocaleString('ru-RU')}
+                </small>
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
     </section>
   );

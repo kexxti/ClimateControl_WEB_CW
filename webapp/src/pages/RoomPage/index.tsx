@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import { Link, useParams } from 'react-router-dom';
 import type { getRoomParams } from '../../lib/routes';
 import { getDashboard, getSettings, getStatistics } from '../../lib/routes';
+import { useToast } from '../../lib/toast';
 import { trpc } from '../../lib/trpcClient';
 import styles from './index.module.scss';
 
@@ -28,6 +29,12 @@ const statusLabel: Record<RoomStatus, string> = {
   stable: 'Поддержка',
   offline: 'Оффлайн',
   error: 'Ошибка',
+};
+
+const controlModeLabel = {
+  local: 'Локальный',
+  remote: 'Дистанционный',
+  failsafe: 'Аварийный',
 };
 
 const formatTemp = (value: number) => `${value.toFixed(1)}°C`;
@@ -125,12 +132,12 @@ const TemperatureChart = ({ data }: { data: RoomHistoryPoint[] }) => {
 export const RoomPage = () => {
   const { roomID } = useParams() as getRoomParams;
   const utils = trpc.useContext();
+  const { showToast } = useToast();
   const { data, error, isLoading, isFetching, isError } = trpc.rooms.getById.useQuery({ roomID });
   const [period, setPeriod] = useState<Period>('week');
   const [setpointDraft, setSetpointDraft] = useState<number | null>(null);
   const [algorithmDraft, setAlgorithmDraft] = useState<Algorithm | null>(null);
   const [pidDraft, setPidDraft] = useState({ kp: 1.2, ki: 0.35, kd: 0.08, hysteresis: 0.4 });
-  const [feedback, setFeedback] = useState<string | null>(null);
 
   const room = data?.room;
 
@@ -145,6 +152,9 @@ export const RoomPage = () => {
   const invalidateRoomData = async () => {
     await Promise.all([
       utils.rooms.getById.invalidate({ roomID }),
+      utils.rooms.getAll.invalidate(),
+      utils.dashboard.getSummary.invalidate(),
+      utils.statistics.getAnalytics.invalidate(),
       utils.getRoom.invalidate({ roomID }),
       utils.getDashboardData.invalidate(),
       utils.getStatisticsData.invalidate(),
@@ -154,27 +164,39 @@ export const RoomPage = () => {
   const updateSetpoint = trpc.rooms.updateSetpoint.useMutation({
     onSuccess: async (result) => {
       setSetpointDraft(null);
-      setFeedback(result.commandCreated ? 'Уставка сохранена, команда создана' : 'Уставка сохранена как желаемая конфигурация');
+      showToast({
+        tone: 'success',
+        title: result.commandCreated ? 'Уставка сохранена' : 'Уставка сохранена как desired config',
+        message: result.commandCreated ? 'Команда отправится контроллеру.' : 'Контроллер применит её после возврата в remote/online режим.',
+      });
       await invalidateRoomData();
     },
-    onError: (mutationError) => setFeedback(mutationError.message),
+    onError: (mutationError) => showToast({ tone: 'error', title: 'Не удалось сохранить уставку', message: mutationError.message }),
   });
 
   const updateAlgorithm = trpc.rooms.updateAlgorithm.useMutation({
     onSuccess: async (result) => {
       setAlgorithmDraft(null);
-      setFeedback(result.commandCreated ? 'Алгоритм сохранён, команда создана' : 'Алгоритм сохранён как желаемая конфигурация');
+      showToast({
+        tone: 'success',
+        title: result.commandCreated ? 'Алгоритм сохранён' : 'Алгоритм сохранён как desired config',
+        message: result.commandCreated ? 'Команда отправится контроллеру.' : 'Контроллер применит его после возврата в remote/online режим.',
+      });
       await invalidateRoomData();
     },
-    onError: (mutationError) => setFeedback(mutationError.message),
+    onError: (mutationError) => showToast({ tone: 'error', title: 'Не удалось сохранить алгоритм', message: mutationError.message }),
   });
 
   const updatePidParams = trpc.rooms.updatePidParams.useMutation({
     onSuccess: async (result) => {
-      setFeedback(result.commandCreated ? 'PID-параметры сохранены, команда создана' : 'PID-параметры сохранены как желаемая конфигурация');
+      showToast({
+        tone: 'success',
+        title: result.commandCreated ? 'PID-параметры сохранены' : 'PID сохранён как desired config',
+        message: result.commandCreated ? 'Команда отправится контроллеру.' : 'Контроллер применит параметры после возврата в remote/online режим.',
+      });
       await invalidateRoomData();
     },
-    onError: (mutationError) => setFeedback(mutationError.message),
+    onError: (mutationError) => showToast({ tone: 'error', title: 'Не удалось сохранить PID', message: mutationError.message }),
   });
 
   if (isLoading || isFetching) {
@@ -231,7 +253,18 @@ export const RoomPage = () => {
             <span>Статус</span>
             <strong>{statusLabel[room.status as RoomStatus]}</strong>
           </div>
+          <div className={styles.metric}>
+            <span>Режим управления</span>
+            <strong>{controlModeLabel[room.controlMode ?? 'remote']}</strong>
+          </div>
         </div>
+        {room.controlMode === 'local' || room.status === 'offline' ? (
+          <p className={styles.modeNotice}>
+            {room.status === 'offline'
+              ? 'Устройство offline: изменения будут сохранены как желаемая конфигурация.'
+              : 'Локальный режим: веб-панель не управляет устройством напрямую.'}
+          </p>
+        ) : null}
         <div className={styles.controlsGrid}>
           <label>
             <span>Изменить уставку</span>
@@ -300,7 +333,6 @@ export const RoomPage = () => {
           <button type="button" disabled={isSaving} onClick={() => updatePidParams.mutate({ roomID, pidParams: pidDraft })}>
             Сохранить PID
           </button>
-          {feedback ? <span className={styles.feedback}>{feedback}</span> : null}
         </div>
       </section>
 

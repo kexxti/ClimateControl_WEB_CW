@@ -1,0 +1,154 @@
+@import '../../styles/_mixins.scss';
+
+$breakpoint: '<=820px';
+
+.logsPage {
+  min-height: 100%;
+  color: #172033;
+}
+
+.header {
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  p {
+    margin: 0;
+    color: #5d6678;
+    line-height: 1.5;
+  }
+}
+
+.panel {
+  overflow: hidden;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(25, 39, 64, 0.08);
+
+  &:not(:last-child) {
+    margin-bottom: 22px;
+  }
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 28px;
+  color: #fff;
+  background: #42505f;
+
+  h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  span {
+    color: #dce5ef;
+    font-size: 14px;
+    font-weight: 800;
+  }
+}
+
+.filtersGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  padding: 24px 28px;
+
+  label {
+    display: grid;
+    gap: 8px;
+    color: #27364b;
+    font-weight: 800;
+  }
+
+  input,
+  select {
+    min-height: 42px;
+    padding: 0 12px;
+    border: 1px solid #ccd8e4;
+    border-radius: 8px;
+    color: #172033;
+    background: #fff;
+    font: inherit;
+  }
+
+  @include media($breakpoint) {
+    grid-template-columns: 1fr;
+    padding: 22px;
+  }
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #e3ebf3;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    color: #53627a;
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+}
+
+.level {
+  display: inline-flex;
+  min-width: 74px;
+  justify-content: center;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.debug {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.info {
+  color: #0f766e;
+  background: #ccfbf1;
+}
+
+.warning {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.error,
+.critical {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.state {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  color: #526075;
+  font-size: 16px;
+}

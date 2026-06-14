@@ -102,6 +102,9 @@ importers:
       sass:
         specifier: ^1.99.0
         version: 1.99.0
+      vite:
+        specifier: ^8.0.1
+        version: 8.0.10(@types/node@24.12.2)(jiti@2.7.0)(sass@1.99.0)
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.4
@@ -142,9 +145,6 @@ importers:
       typescript-eslint:
         specifier: ^8.57.0
         version: 8.59.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
-      vite:
-        specifier: ^8.0.1
-        version: 8.0.10(@types/node@24.12.2)(jiti@2.7.0)(sass@1.99.0)
 
 packages:
 

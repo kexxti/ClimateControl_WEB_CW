@@ -1,0 +1,99 @@
+@import '../../styles/_mixins.scss';
+
+.loginPage {
+  display: grid;
+  min-height: calc(100vh - 56px);
+  place-items: center;
+  color: #172033;
+}
+
+.panel {
+  width: min(100%, 520px);
+  overflow: hidden;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(25, 39, 64, 0.08);
+}
+
+.panelHeader {
+  padding: 28px 32px;
+  color: #fff;
+  background: #42505f;
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  p {
+    margin: 0;
+    color: #dce5ef;
+    line-height: 1.5;
+  }
+}
+
+.formGrid {
+  display: grid;
+  gap: 18px;
+  padding: 28px 32px;
+
+  label {
+    display: grid;
+    gap: 8px;
+    color: #27364b;
+    font-weight: 800;
+  }
+
+  input {
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid #ccd8e4;
+    border-radius: 8px;
+    color: #172033;
+    background: #fff;
+    font: inherit;
+  }
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0 32px 28px;
+
+  button {
+    min-height: 42px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 8px;
+    color: #0f2f2d;
+    background: #9de5db;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+  }
+
+  span {
+    color: #53627a;
+    font-size: 14px;
+    font-weight: 800;
+  }
+}
+
+.state {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  color: #526075;
+  background: #eef3f7;
+  font-size: 16px;
+}

@@ -1,8 +1,15 @@
-import { trpc } from '../trpcBase';
-import { getDashboardData } from '../services/dashboardService';
+import { protectedProcedure, trpc } from '../trpcBase';
+import { getDashboardSummary } from '../services/dashboardService';
+
+const nestedDashboardRouter = trpc.router({
+  getSummary: protectedProcedure.query(() => {
+    return getDashboardSummary();
+  }),
+});
 
 export const dashboardRouter = {
-  getDashboardData: trpc.procedure.query(() => {
-    return getDashboardData();
+  dashboard: nestedDashboardRouter,
+  getDashboardData: protectedProcedure.query(() => {
+    return getDashboardSummary();
   }),
 };

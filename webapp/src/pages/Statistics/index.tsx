@@ -6,7 +6,7 @@ import { trpc } from '../../lib/trpcClient';
 import styles from './index.module.scss';
 
 type Period = 'day' | 'week' | 'month' | 'custom';
-type RoomStatus = 'heating' | 'cooling' | 'stable';
+type RoomStatus = 'heating' | 'cooling' | 'stable' | 'offline' | 'error';
 
 type Room = {
   roomID: string;
@@ -51,6 +51,8 @@ const statusLabel: Record<RoomStatus, string> = {
   heating: 'Нагрев',
   cooling: 'Охлаждение',
   stable: 'Поддержка',
+  offline: 'Оффлайн',
+  error: 'Ошибка',
 };
 
 const formatTemp = (value: number) => `${value.toFixed(1)}°C`;
@@ -204,8 +206,8 @@ const StatePieChart = ({ data }: { data: StatePoint[] }) => {
     const radius = 118;
     const color = d3
       .scaleOrdinal<RoomStatus, string>()
-      .domain(['heating', 'cooling', 'stable'])
-      .range(['#f59e0b', '#3b82f6', '#10b981']);
+      .domain(['heating', 'cooling', 'stable', 'offline', 'error'])
+      .range(['#f59e0b', '#3b82f6', '#10b981', '#64748b', '#ef4444']);
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
@@ -236,13 +238,26 @@ const StatePieChart = ({ data }: { data: StatePoint[] }) => {
 };
 
 export const StatisticsPage = () => {
-  const { data, error, isLoading, isFetching, isError } = trpc.getStatisticsData.useQuery();
   const [selectedRoomIDs, setSelectedRoomIDs] = useState<string[] | null>(null);
   const [period, setPeriod] = useState<Period>('day');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const statisticsInput = useMemo(
+    () => ({
+      roomIDs: selectedRoomIDs ?? undefined,
+      period,
+      dateFrom: period === 'custom' && dateFrom ? new Date(`${dateFrom}T00:00:00`).toISOString() : undefined,
+      dateTo: period === 'custom' && dateTo ? new Date(`${dateTo}T23:59:59`).toISOString() : undefined,
+    }),
+    [dateFrom, dateTo, period, selectedRoomIDs],
+  );
+  const { data, error, isLoading, isFetching, isError } = trpc.statistics.getAnalytics.useQuery(statisticsInput);
+  const { data: filterRooms } = trpc.rooms.getAll.useQuery();
 
   const effectiveRoomIDs = useMemo(
-    () => selectedRoomIDs ?? data?.rooms.map((room) => room.roomID) ?? [],
-    [data?.rooms, selectedRoomIDs],
+    () => selectedRoomIDs ?? filterRooms?.map((room) => room.roomID) ?? data?.rooms.map((room) => room.roomID) ?? [],
+    [data?.rooms, filterRooms, selectedRoomIDs],
   );
   const selectedRooms = useMemo(
     () => data?.rooms.filter((room) => effectiveRoomIDs.includes(room.roomID)) ?? [],
@@ -274,53 +289,37 @@ export const StatisticsPage = () => {
       return [];
     }
 
-    return histories[0].map((point, index) => {
-      const avgTemp = histories.reduce((sum, history) => sum + history[index].temp, 0) / histories.length;
-      const avgSetpoint = histories.reduce((sum, history) => sum + history[index].setpoint, 0) / histories.length;
+    const buckets = new Map<string, { temps: number[]; setpoints: number[] }>();
 
-      return {
-        time: point.time,
-        avgTemp: Number(avgTemp.toFixed(1)),
-        avgSetpoint: Number(avgSetpoint.toFixed(1)),
-      };
+    histories.forEach((history) => {
+      history.forEach((point) => {
+        const bucket = buckets.get(point.time) ?? { temps: [], setpoints: [] };
+        bucket.temps.push(point.temp);
+        bucket.setpoints.push(point.setpoint);
+        buckets.set(point.time, bucket);
+      });
     });
+
+    return [...buckets.entries()].map(([time, bucket]) => ({
+      time,
+      avgTemp: Number((bucket.temps.reduce((sum, value) => sum + value, 0) / bucket.temps.length).toFixed(1)),
+      avgSetpoint: Number((bucket.setpoints.reduce((sum, value) => sum + value, 0) / bucket.setpoints.length).toFixed(1)),
+    }));
   }, [data, selectedRooms]);
 
-  const stateData = useMemo<StatePoint[]>(() => {
-    const statuses: RoomStatus[] = ['heating', 'cooling', 'stable'];
-
-    return statuses.map((status) => ({
-      status,
-      label: statusLabel[status],
-      value: selectedRooms.filter((room) => room.status === status).length,
-    }));
-  }, [selectedRooms]);
+  const stateData = useMemo<StatePoint[]>(() => data?.stateDistribution ?? [], [data?.stateDistribution]);
 
   const indicators = useMemo(() => {
     if (!data || selectedRooms.length === 0) {
       return null;
     }
 
-    const errors = selectedRooms.map((room) => Math.abs(room.currentTemp - room.setpoint));
-    const avgTemp = selectedRooms.reduce((sum, room) => sum + room.currentTemp, 0) / selectedRooms.length;
-    const avgError = errors.reduce((sum, value) => sum + value, 0) / errors.length;
-    const maxDeviation = Math.max(...errors);
-    const energyConsumption = selectedRooms.reduce(
-      (sum, room) => sum + Math.abs(room.currentTemp - room.setpoint) * 1.8 + 2,
-      0,
-    );
-
-    return {
-      avgTemp,
-      avgError,
-      maxDeviation,
-      energyConsumption,
-    };
-  }, [data, selectedRooms]);
+    return data.numericIndicators;
+  }, [data, selectedRooms.length]);
 
   const toggleRoom = (roomID: string) => {
     setSelectedRoomIDs((current) => {
-      const activeIDs = current ?? data?.rooms.map((room) => room.roomID) ?? [];
+      const activeIDs = current ?? filterRooms?.map((room) => room.roomID) ?? data?.rooms.map((room) => room.roomID) ?? [];
       const nextIDs = activeIDs.includes(roomID) ? activeIDs.filter((id) => id !== roomID) : [...activeIDs, roomID];
       return nextIDs.length ? nextIDs : activeIDs;
     });
@@ -396,7 +395,7 @@ export const StatisticsPage = () => {
           <section>
             <h3>Помещения</h3>
             <div className={styles.controlList}>
-              {data.rooms.map((room: Room) => (
+              {(filterRooms ?? data.rooms).map((room: Room) => (
                 <label key={room.roomID}>
                   <input
                     type="checkbox"
@@ -419,6 +418,18 @@ export const StatisticsPage = () => {
                 </label>
               ))}
             </div>
+            {period === 'custom' ? (
+              <div className={styles.dateFields}>
+                <label>
+                  <span>От</span>
+                  <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+                </label>
+                <label>
+                  <span>До</span>
+                  <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+                </label>
+              </div>
+            ) : null}
           </section>
         </aside>
       </div>
