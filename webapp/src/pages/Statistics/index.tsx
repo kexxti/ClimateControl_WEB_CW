@@ -1,26 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Link } from 'react-router-dom';
+import { BuildingHistoryLineChart } from '../../components/charts';
+import { EmptyState, ErrorState, LoadingState } from '../../components/uiState';
+import type { RoomListItem } from '../../lib/apiTypes';
+import { statisticsPeriodLabel, type RoomStatus, type StatisticsPeriod } from '../../lib/climate';
+import { formatTemp } from '../../lib/formatters';
 import { getDashboard } from '../../lib/routes';
 import { trpc } from '../../lib/trpcClient';
 import styles from './index.module.scss';
-
-type Period = 'day' | 'week' | 'month' | 'custom';
-type RoomStatus = 'heating' | 'cooling' | 'stable' | 'offline' | 'error';
-
-type Room = {
-  roomID: string;
-  name: string;
-  currentTemp: number;
-  setpoint: number;
-  status: RoomStatus;
-};
-
-type RoomHistoryPoint = {
-  time: string;
-  temp: number;
-  setpoint: number;
-};
 
 type SetpointPoint = {
   name: string;
@@ -28,34 +16,11 @@ type SetpointPoint = {
   setpoint: number;
 };
 
-type TemperaturePoint = {
-  time: string;
-  avgTemp: number;
-  avgSetpoint: number;
-};
-
 type StatePoint = {
   status: RoomStatus;
   label: string;
   value: number;
 };
-
-const periodLabel: Record<Period, string> = {
-  day: 'День',
-  week: 'Неделя',
-  month: 'Месяц',
-  custom: 'Выбрать период',
-};
-
-const statusLabel: Record<RoomStatus, string> = {
-  heating: 'Нагрев',
-  cooling: 'Охлаждение',
-  stable: 'Поддержка',
-  offline: 'Оффлайн',
-  error: 'Ошибка',
-};
-
-const formatTemp = (value: number) => `${value.toFixed(1)}°C`;
 
 const SetpointBarChart = ({ data }: { data: SetpointPoint[] }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -133,64 +98,17 @@ const SetpointBarChart = ({ data }: { data: SetpointPoint[] }) => {
   return <svg ref={svgRef} className={styles.chart} aria-label="Сравнение температуры и уставки" />;
 };
 
-const TemperatureLineChart = ({ data }: { data: TemperaturePoint[] }) => {
-  const svgRef = useRef<SVGSVGElement | null>(null);
-
-  useEffect(() => {
-    if (!svgRef.current) {
-      return;
-    }
-
-    const width = 720;
-    const height = 330;
-    const margin = { top: 28, right: 24, bottom: 48, left: 52 };
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
-
-    const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
-    svg.attr('viewBox', `0 0 ${width} ${height}`).attr('role', 'img');
-
-    const x = d3.scalePoint<string>().domain(data.map((item) => item.time)).range([0, innerWidth]).padding(0.35);
-    const values = data.flatMap((item) => [item.avgTemp, item.avgSetpoint]);
-    const y = d3
-      .scaleLinear()
-      .domain([Math.floor(d3.min(values) ?? 18) - 1, Math.ceil(d3.max(values) ?? 25) + 1])
-      .nice()
-      .range([innerHeight, 0]);
-
-    const chart = svg.append('g').attr('transform', `translate(${margin.left}, ${margin.top})`);
-    chart
-      .append('g')
-      .attr('class', styles.grid)
-      .call(d3.axisLeft(y).tickSize(-innerWidth).tickFormat(() => ''));
-    chart.append('g').attr('class', styles.axis).attr('transform', `translate(0, ${innerHeight})`).call(d3.axisBottom(x));
-    chart.append('g').attr('class', styles.axis).call(d3.axisLeft(y).ticks(5).tickFormat((value) => `${value}°`));
-
-    const tempLine = d3
-      .line<TemperaturePoint>()
-      .x((item) => x(item.time) ?? 0)
-      .y((item) => y(item.avgTemp))
-      .curve(d3.curveMonotoneX);
-    const setpointLine = d3
-      .line<TemperaturePoint>()
-      .x((item) => x(item.time) ?? 0)
-      .y((item) => y(item.avgSetpoint))
-      .curve(d3.curveMonotoneX);
-
-    chart.append('path').datum(data).attr('class', styles.avgTempLine).attr('d', tempLine);
-    chart.append('path').datum(data).attr('class', styles.avgSetpointLine).attr('d', setpointLine);
-    chart
-      .selectAll('circle.tempDot')
-      .data(data)
-      .join('circle')
-      .attr('class', styles.tempDot)
-      .attr('cx', (item) => x(item.time) ?? 0)
-      .attr('cy', (item) => y(item.avgTemp))
-      .attr('r', 4);
-  }, [data]);
-
-  return <svg ref={svgRef} className={styles.chart} aria-label="Температура за выбранный период" />;
+const buildingHistoryLineChartClasses = {
+  chart: styles.chart,
+  axis: styles.axis,
+  grid: styles.grid,
+  tooltip: styles.tooltip,
+  avgTempLine: styles.avgTempLine,
+  avgSetpointLine: styles.avgSetpointLine,
+  avgTempDot: styles.tempDot,
+  legend: styles.legend,
+  avgTempLegend: styles.avgTempLegend,
+  avgSetpointLegend: styles.avgSetpointLegend,
 };
 
 const StatePieChart = ({ data }: { data: StatePoint[] }) => {
@@ -239,9 +157,10 @@ const StatePieChart = ({ data }: { data: StatePoint[] }) => {
 
 export const StatisticsPage = () => {
   const [selectedRoomIDs, setSelectedRoomIDs] = useState<string[] | null>(null);
-  const [period, setPeriod] = useState<Period>('day');
+  const [period, setPeriod] = useState<StatisticsPeriod>('day');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [isFiltersOpen, setIsFiltersOpen] = useState(true);
 
   const statisticsInput = useMemo(
     () => ({
@@ -276,36 +195,7 @@ export const StatisticsPage = () => {
     [data?.setpointComparison, effectiveRoomIDs],
   );
 
-  const temperatureData = useMemo(() => {
-    if (!data || selectedRooms.length === 0) {
-      return [];
-    }
-
-    const histories = selectedRooms
-      .map((room: Room) => data.roomHistories[room.roomID])
-      .filter((history): history is RoomHistoryPoint[] => Boolean(history));
-
-    if (histories.length === 0) {
-      return [];
-    }
-
-    const buckets = new Map<string, { temps: number[]; setpoints: number[] }>();
-
-    histories.forEach((history) => {
-      history.forEach((point) => {
-        const bucket = buckets.get(point.time) ?? { temps: [], setpoints: [] };
-        bucket.temps.push(point.temp);
-        bucket.setpoints.push(point.setpoint);
-        buckets.set(point.time, bucket);
-      });
-    });
-
-    return [...buckets.entries()].map(([time, bucket]) => ({
-      time,
-      avgTemp: Number((bucket.temps.reduce((sum, value) => sum + value, 0) / bucket.temps.length).toFixed(1)),
-      avgSetpoint: Number((bucket.setpoints.reduce((sum, value) => sum + value, 0) / bucket.setpoints.length).toFixed(1)),
-    }));
-  }, [data, selectedRooms]);
+  const temperatureData = useMemo(() => (selectedRooms.length > 0 ? data?.buildingHistory ?? [] : []), [data?.buildingHistory, selectedRooms.length]);
 
   const stateData = useMemo<StatePoint[]>(() => data?.stateDistribution ?? [], [data?.stateDistribution]);
 
@@ -326,15 +216,15 @@ export const StatisticsPage = () => {
   };
 
   if (isLoading || isFetching) {
-    return <div className={styles.state}>Загрузка статистики...</div>;
+    return <LoadingState title="Загрузка статистики..." />;
   }
 
   if (isError) {
-    return <div className={styles.state}>Ошибка: {error.message}</div>;
+    return <ErrorState message={error.message} />;
   }
 
   if (!data || !indicators) {
-    return <div className={styles.state}>Нет данных для статистики</div>;
+    return <EmptyState title="Нет данных для статистики" message="Выберите помещения или проверьте измерения в базе данных." />;
   }
 
   return (
@@ -342,7 +232,7 @@ export const StatisticsPage = () => {
       <header className={styles.header}>
         <div>
           <h1>Статистика</h1>
-          <p>Аналитика по выбранным помещениям за период: {periodLabel[period].toLowerCase()}</p>
+          <p>Аналитика по выбранным помещениям за период: {statisticsPeriodLabel[period].toLowerCase()}</p>
         </div>
         <Link className={styles.dashboardLink} to={getDashboard()}>
           Dashboard
@@ -357,7 +247,14 @@ export const StatisticsPage = () => {
           </figure>
 
           <figure className={styles.chartCard}>
-            <TemperatureLineChart data={temperatureData} />
+            <BuildingHistoryLineChart
+              data={temperatureData}
+              meta={data.historyMeta}
+              period={period}
+              classNames={buildingHistoryLineChartClasses}
+              size={{ width: 720, height: 330, margin: { top: 28, right: 24, bottom: 48, left: 52 } }}
+              ariaLabel="Температура за выбранный период"
+            />
             <figcaption>Температура</figcaption>
           </figure>
 
@@ -390,47 +287,56 @@ export const StatisticsPage = () => {
         </main>
 
         <aside className={styles.filters}>
-          <h2>Фильтры</h2>
+          <div className={styles.filtersHeader}>
+            <h2>Фильтры</h2>
+            <button type="button" onClick={() => setIsFiltersOpen((current) => !current)}>
+              {isFiltersOpen ? 'Свернуть' : 'Развернуть'}
+            </button>
+          </div>
 
-          <section>
-            <h3>Помещения</h3>
-            <div className={styles.controlList}>
-              {(filterRooms ?? data.rooms).map((room: Room) => (
-                <label key={room.roomID}>
-                  <input
-                    type="checkbox"
-                    checked={effectiveRoomIDs.includes(room.roomID)}
-                    onChange={() => toggleRoom(room.roomID)}
-                  />
-                  <span>{room.name}</span>
-                </label>
-              ))}
-            </div>
-          </section>
+          {isFiltersOpen ? (
+            <>
+              <section>
+                <h3>Помещения</h3>
+                <div className={styles.controlList}>
+                  {(filterRooms ?? data.rooms).map((room: RoomListItem) => (
+                    <label key={room.roomID}>
+                      <input
+                        type="checkbox"
+                        checked={effectiveRoomIDs.includes(room.roomID)}
+                        onChange={() => toggleRoom(room.roomID)}
+                      />
+                      <span>{room.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </section>
 
-          <section>
-            <h3>Период</h3>
-            <div className={styles.controlList}>
-              {(Object.keys(periodLabel) as Period[]).map((item) => (
-                <label key={item}>
-                  <input type="radio" checked={period === item} onChange={() => setPeriod(item)} />
-                  <span>{periodLabel[item]}</span>
-                </label>
-              ))}
-            </div>
-            {period === 'custom' ? (
-              <div className={styles.dateFields}>
-                <label>
-                  <span>От</span>
-                  <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-                </label>
-                <label>
-                  <span>До</span>
-                  <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-                </label>
-              </div>
-            ) : null}
-          </section>
+              <section>
+                <h3>Период</h3>
+                <div className={styles.controlList}>
+                  {(Object.keys(statisticsPeriodLabel) as StatisticsPeriod[]).map((item) => (
+                    <label key={item}>
+                      <input type="radio" checked={period === item} onChange={() => setPeriod(item)} />
+                      <span>{statisticsPeriodLabel[item]}</span>
+                    </label>
+                  ))}
+                </div>
+                {period === 'custom' ? (
+                  <div className={styles.dateFields}>
+                    <label>
+                      <span>От</span>
+                      <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+                    </label>
+                    <label>
+                      <span>До</span>
+                      <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+                    </label>
+                  </div>
+                ) : null}
+              </section>
+            </>
+          ) : null}
         </aside>
       </div>
     </section>

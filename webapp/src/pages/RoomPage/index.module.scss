@@ -4,7 +4,7 @@ $breakpoint: '<=820px';
 
 .roomPage {
   min-height: 100%;
-  color: #172033;
+  color: var(--app-text, #172033);
 }
 
 .header {
@@ -23,7 +23,7 @@ $breakpoint: '<=820px';
 
   p {
     margin: 0;
-    color: #5d6678;
+    color: var(--app-muted, #5d6678);
     line-height: 1.5;
   }
 
@@ -54,9 +54,9 @@ $breakpoint: '<=820px';
 
 .panel {
   overflow: hidden;
-  border: 1px solid #dce5ef;
+  border: 1px solid var(--app-border, #dce5ef);
   border-radius: 8px;
-  background: #fff;
+  background: var(--app-surface, #fff);
   box-shadow: 0 10px 28px rgba(25, 39, 64, 0.08);
 
   &:not(:last-child) {
@@ -124,20 +124,20 @@ $breakpoint: '<=820px';
 .metric {
   min-height: 96px;
   padding: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border, #e2e8f0);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--app-surface-muted, #f8fafc);
 
   span {
     display: block;
     margin-bottom: 10px;
-    color: #687387;
+    color: var(--app-muted, #687387);
     font-size: 13px;
     font-weight: 700;
   }
 
   strong {
-    color: #13213a;
+    color: var(--app-text, #13213a);
     font-size: 26px;
     font-weight: 800;
   }
@@ -152,7 +152,7 @@ $breakpoint: '<=820px';
   label {
     display: grid;
     gap: 8px;
-    color: #3a4659;
+    color: var(--app-text, #3a4659);
     font-weight: 800;
   }
 
@@ -161,10 +161,10 @@ $breakpoint: '<=820px';
     width: 100%;
     min-height: 42px;
     padding: 0 12px;
-    border: 1px solid #ccd8e4;
+    border: 1px solid var(--app-border, #ccd8e4);
     border-radius: 8px;
-    color: #172033;
-    background: #fff;
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
     font: inherit;
   }
 
@@ -211,7 +211,7 @@ $breakpoint: '<=820px';
 }
 
 .feedback {
-  color: #53627a;
+  color: var(--app-muted, #53627a);
   font-size: 14px;
   font-weight: 800;
 }
@@ -220,16 +220,16 @@ $breakpoint: '<=820px';
   display: inline-grid;
   grid-template-columns: repeat(3, minmax(84px, 1fr));
   overflow: hidden;
-  border: 1px solid #243142;
+  border: 1px solid var(--app-border, #243142);
   border-radius: 8px;
-  background: #fff;
+  background: var(--app-surface, #fff);
 
   button {
     min-height: 38px;
     border: 0;
-    border-right: 1px solid #243142;
-    color: #172033;
-    background: #fff;
+    border-right: 1px solid var(--app-border, #243142);
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
     font: inherit;
     font-weight: 800;
     cursor: pointer;
@@ -251,17 +251,18 @@ $breakpoint: '<=820px';
   min-height: 330px;
   margin: 26px;
   border: 1px solid #e2e8f0;
+  border-color: var(--app-border, #e2e8f0);
   border-radius: 8px;
-  background: #fbfdff;
+  background: var(--app-surface-muted, #fbfdff);
 }
 
 .axis {
-  color: #53627a;
+  color: var(--app-muted, #53627a);
   font-size: 12px;
 }
 
 .grid {
-  color: #d9e2ec;
+  color: var(--app-border, #d9e2ec);
 }
 
 .grid path {
@@ -288,6 +289,27 @@ $breakpoint: '<=820px';
   fill: #fff;
   stroke: #0f766e;
   stroke-width: 3;
+  cursor: pointer;
+}
+
+.setpointMarker {
+  stroke: #f59e0b;
+  stroke-dasharray: 5 5;
+  stroke-width: 2;
+}
+
+.tooltip {
+  pointer-events: none;
+
+  rect {
+    fill: rgba(15, 23, 42, 0.92);
+  }
+
+  text {
+    fill: #fff;
+    font-size: 12px;
+    font-weight: 700;
+  }
 }
 
 .tempLegend {
@@ -299,7 +321,7 @@ $breakpoint: '<=820px';
 }
 
 .legend {
-  fill: #516174;
+  fill: var(--app-muted, #516174);
   font-size: 12px;
   font-weight: 700;
 }
@@ -308,6 +330,22 @@ $breakpoint: '<=820px';
   display: grid;
   min-height: 280px;
   place-items: center;
-  color: #526075;
+  color: var(--app-muted, #526075);
   font-size: 16px;
+}
+
+:global(body[data-theme='dark']) {
+  .modeNotice {
+    color: #fde68a;
+    background: rgba(250, 204, 21, 0.13);
+  }
+
+  .tempDot {
+    fill: var(--app-surface, #182233);
+  }
+
+  .activeSegment {
+    color: #0f2f2d;
+    background: #9de5db !important;
+  }
 }

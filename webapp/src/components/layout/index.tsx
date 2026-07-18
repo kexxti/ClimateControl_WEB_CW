@@ -1,4 +1,5 @@
-import { FormEvent, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../../lib/auth';
 import { getDashboard, getLogs, getSettings, getStatistics } from '../../lib/routes';
@@ -12,15 +13,34 @@ const roleLabel = {
 };
 
 export const Layout = () => {
-  const { user, logout, refreshSession } = useAuth();
+  const { user, logout, refreshSession, isBackendUnavailable } = useAuth();
   const { showToast } = useToast();
   const utils = trpc.useContext();
+  const { data: settings } = trpc.settings.get.useQuery(undefined, {
+    staleTime: 60_000,
+  });
   const changePassword = trpc.auth.changePassword.useMutation();
+  const [isNavigationCollapsed, setIsNavigationCollapsed] = useState(
+    () => localStorage.getItem('navigationCollapsed') === 'true',
+  );
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const avatarLetter = user?.login.slice(0, 1).toUpperCase() ?? '?';
+
+  useEffect(() => {
+    const theme = settings?.application.theme === 'dark' ? 'dark' : 'light';
+    document.body.dataset.theme = theme;
+  }, [settings?.application.theme]);
+
+  const toggleNavigation = () => {
+    setIsNavigationCollapsed((current) => {
+      const nextValue = !current;
+      localStorage.setItem('navigationCollapsed', String(nextValue));
+      return nextValue;
+    });
+  };
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -45,34 +65,54 @@ export const Layout = () => {
   };
 
   return (
-    <div className={css.layout}>
+    <div className={`${css.layout} ${isNavigationCollapsed ? css.collapsedLayout : ''}`}>
       <aside className={css.navigation}>
         <div>
-          <div className={css.logo}>ClimateController</div>
+          <div className={css.navTop}>
+            <div className={css.logo} title="ClimateController">
+              {isNavigationCollapsed ? 'CC' : 'ClimateController'}
+            </div>
+            <button
+              className={css.collapseButton}
+              type="button"
+              aria-label={isNavigationCollapsed ? 'Развернуть боковую панель' : 'Свернуть боковую панель'}
+              onClick={toggleNavigation}
+            >
+              <span className={css.collapseIcon} aria-hidden="true" />
+            </button>
+          </div>
+          <div className={`${css.connectionState} ${isBackendUnavailable ? css.offline : css.online}`}>
+            <span aria-hidden="true" />
+            <strong>{isBackendUnavailable ? 'Backend offline' : 'Backend online'}</strong>
+          </div>
           <nav className={css.menu} aria-label="Главная навигация">
             <NavLink
               to={getDashboard()}
               className={({ isActive }) => `${css.link} ${isActive ? css.active : ''}`}
             >
-              Dashboard
+              <span>D</span>
+              <strong>Dashboard</strong>
             </NavLink>
             <NavLink
               to={getStatistics()}
               className={({ isActive }) => `${css.link} ${isActive ? css.active : ''}`}
             >
-              Statistics
+              <span>S</span>
+              <strong>Statistics</strong>
             </NavLink>
             <NavLink
               to={getLogs()}
               className={({ isActive }) => `${css.link} ${isActive ? css.active : ''}`}
             >
-              Logs
+              <span>L</span>
+              <strong>Logs</strong>
             </NavLink>
             <NavLink
               to={getSettings()}
               className={({ isActive }) => `${css.link} ${isActive ? css.active : ''}`}
             >
-              Settings
+              <span>T</span>
+              <strong>Settings</strong>
             </NavLink>
           </nav>
         </div>

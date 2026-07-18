@@ -58,14 +58,41 @@ export type Room = {
 
 export type RoomHistoryPoint = {
   time: string;
+  timestamp: string;
+  bucketStart: string;
+  bucketEnd: string;
   temp: number;
   setpoint: number;
+  power: number | null;
+  minTemp: number;
+  maxTemp: number;
+  count: number;
+  setpointChanged: boolean;
+  isAggregated: boolean;
 };
 
 export type BuildingHistoryPoint = {
   time: string;
+  timestamp: string;
+  bucketStart: string;
+  bucketEnd: string;
   avgTemp: number;
   avgSetpoint: number;
+  avgPower: number | null;
+  minTemp: number;
+  maxTemp: number;
+  count: number;
+};
+
+export type HistoryPeriod = 'day' | 'week' | 'month' | 'custom';
+
+export type HistoryBucket = 'auto' | 'raw' | 'minute' | '15m' | '30m' | 'hour' | 'day';
+
+export type HistoryMeta = {
+  period: HistoryPeriod;
+  bucket: Exclude<HistoryBucket, 'auto'>;
+  dateFrom: string;
+  dateTo: string;
 };
 
 export type PidParams = {

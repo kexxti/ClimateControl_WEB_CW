@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { EmptyState, ErrorState, LoadingState } from '../../components/uiState';
 import { trpc } from '../../lib/trpcClient';
 import styles from './index.module.scss';
 
@@ -82,9 +83,11 @@ export const LogsPage = () => {
           <h2>Записи</h2>
           {isFetching ? <span>Обновление...</span> : null}
         </div>
-        {isLoading ? <div className={styles.state}>Загрузка логов...</div> : null}
-        {isError ? <div className={styles.state}>Ошибка: {error.message}</div> : null}
-        {!isLoading && !isError && data?.length === 0 ? <div className={styles.state}>Логов по фильтрам нет</div> : null}
+        {isLoading ? <LoadingState title="Загрузка логов..." /> : null}
+        {isError ? <ErrorState message={error.message} /> : null}
+        {!isLoading && !isError && data?.length === 0 ? (
+          <EmptyState title="Логов по фильтрам нет" message="Измените фильтры или дождитесь новых сообщений от устройства." />
+        ) : null}
         {data && data.length > 0 ? (
           <div className={styles.tableWrap}>
             <table className={styles.table}>

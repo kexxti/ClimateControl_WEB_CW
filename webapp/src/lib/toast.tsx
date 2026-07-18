@@ -1,4 +1,5 @@
-import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import styles from './toast.module.scss';
 
 type ToastTone = 'success' | 'error' | 'warning' | 'info';

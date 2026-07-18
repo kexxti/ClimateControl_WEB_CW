@@ -8,22 +8,82 @@ $breakpoint: '<=900px';
   flex-flow: row nowrap;
   height: 100%;
   min-height: 100vh;
-  background: #eef3f7;
+  background: var(--app-bg, #eef3f7);
   @include media($breakpoint) {
     flex-flow: column nowrap;
   }
 }
 
+.collapsedLayout {
+  .navigation {
+    flex-basis: 88px;
+    padding-inline: 14px;
+  }
+
+  .navTop {
+    justify-content: center;
+  }
+
+  .logo {
+    width: 100%;
+    text-align: center;
+  }
+
+  .collapseButton {
+    right: -16px;
+  }
+
+  .collapseIcon {
+    transform: rotate(180deg);
+  }
+
+  .link {
+    justify-content: center;
+    padding-inline: 10px;
+
+    strong {
+      display: none;
+    }
+
+    span {
+      margin: 0;
+    }
+  }
+
+  .connectionState strong,
+  .userInfo {
+    display: none;
+  }
+
+  .userCard {
+    grid-template-columns: 42px;
+    justify-content: center;
+  }
+
+  @include media($breakpoint) {
+    .navigation {
+      flex-basis: auto;
+    }
+
+    .link strong,
+    .connectionState strong,
+    .userInfo {
+      display: block;
+    }
+  }
+}
+
 .navigation {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 24px;
   height: 100%;
-  overflow: auto;
+  overflow: visible;
   flex: 0 0 240px;
   padding: 24px 22px;
-  border-right: 1px solid #d9e2ec;
+  border-right: 1px solid rgba(217, 226, 236, 0.14);
   background: #172033;
   color: $white;
 
@@ -34,12 +94,109 @@ $breakpoint: '<=900px';
     flex-direction: row;
     align-items: flex-start;
     border-right: none;
-    border-bottom: 1px solid #d9e2ec;
+    border-bottom: 1px solid rgba(217, 226, 236, 0.14);
   }
 
   @include media('<=640px') {
     flex-direction: column;
   }
+}
+
+.navTop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.collapseButton {
+  position: absolute;
+  top: 50%;
+  right: -39px;
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border: 1px solid rgba(219, 231, 242, 0.22);
+  border-radius: 50%;
+  color: #dbe7f2;
+  background: #223047;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.24);
+  font: inherit;
+  transform: translateY(-50%);
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(157, 229, 219, 0.72);
+    background: #2f415d;
+    transform: translateY(-50%) scale(1.04);
+  }
+
+  @include media($breakpoint) {
+    position: static;
+    transform: none;
+
+    &:hover {
+      transform: scale(1.04);
+    }
+  }
+}
+
+.collapseIcon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  transition: transform 160ms ease;
+
+  &::before,
+  &::after {
+    position: absolute;
+    left: 4px;
+    width: 8px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    content: '';
+  }
+
+  &::before {
+    top: 3px;
+    transform: rotate(-45deg);
+  }
+
+  &::after {
+    bottom: 3px;
+    transform: rotate(45deg);
+  }
+}
+
+.connectionState {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  margin-bottom: 18px;
+  color: #b9c8d8;
+  font-size: 12px;
+  font-weight: 900;
+
+  span {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+  }
+}
+
+.online span {
+  background: #22c55e;
+}
+
+.offline span {
+  background: #ef4444;
 }
 
 .userArea {
@@ -111,8 +268,9 @@ $breakpoint: '<=900px';
   gap: 8px;
   padding: 10px;
   border: 1px solid #d9e2ec;
+  border-color: var(--app-border, #d9e2ec);
   border-radius: 8px;
-  background: #fff;
+  background: var(--app-surface, #fff);
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.2);
 
   button {
@@ -120,15 +278,15 @@ $breakpoint: '<=900px';
     padding: 0 10px;
     border: 0;
     border-radius: 8px;
-    color: #172033;
-    background: #eef3f7;
+    color: var(--app-text, #172033);
+    background: var(--app-surface-muted, #eef3f7);
     font: inherit;
     font-weight: 800;
     text-align: left;
     cursor: pointer;
 
     &:hover {
-      background: #dbe7f2;
+      background: rgba(157, 229, 219, 0.18);
     }
   }
 
@@ -143,22 +301,23 @@ $breakpoint: '<=900px';
   gap: 3px;
   padding: 8px 10px;
   border-radius: 8px;
-  background: #f8fafc;
+  border: 1px solid var(--app-border, transparent);
+  background: var(--app-surface-muted, #f8fafc);
 
   span {
-    color: #64748b;
+    color: var(--app-muted, #64748b);
     font-size: 12px;
     font-weight: 800;
     text-transform: uppercase;
   }
 
   strong {
-    color: #172033;
+    color: var(--app-text, #172033);
     font-weight: 900;
   }
 
   small {
-    color: #526075;
+    color: var(--app-muted, #526075);
     font-weight: 700;
   }
 }
@@ -177,7 +336,7 @@ $breakpoint: '<=900px';
   width: min(100%, 460px);
   overflow: hidden;
   border-radius: 8px;
-  background: #fff;
+  background: var(--app-surface, #fff);
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
 }
 
@@ -188,7 +347,7 @@ $breakpoint: '<=900px';
   gap: 14px;
   padding: 20px 22px;
   color: #fff;
-  background: #42505f;
+  background: var(--app-panel-header, #42505f);
 
   h2 {
     margin: 0;
@@ -202,8 +361,8 @@ $breakpoint: '<=900px';
     height: 32px;
     border: 0;
     border-radius: 8px;
-    color: #172033;
-    background: #fff;
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
     font: inherit;
     font-size: 22px;
     line-height: 1;
@@ -219,17 +378,17 @@ $breakpoint: '<=900px';
   label {
     display: grid;
     gap: 8px;
-    color: #27364b;
+    color: var(--app-text, #27364b);
     font-weight: 800;
   }
 
   input {
     min-height: 42px;
     padding: 0 12px;
-    border: 1px solid #ccd8e4;
+    border: 1px solid var(--app-border, #ccd8e4);
     border-radius: 8px;
-    color: #172033;
-    background: #fff;
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
     font: inherit;
   }
 }
@@ -252,8 +411,8 @@ $breakpoint: '<=900px';
     cursor: pointer;
 
     &:first-child {
-      color: #172033;
-      background: #eef3f7;
+      color: var(--app-text, #172033);
+      background: var(--app-surface-muted, #eef3f7);
     }
 
     &:disabled {
@@ -264,10 +423,10 @@ $breakpoint: '<=900px';
 }
 
 .logo {
-  margin-bottom: 24px;
   font-size: 20px;
   font-weight: 800;
   letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .menu {
@@ -276,7 +435,9 @@ $breakpoint: '<=900px';
 }
 
 .link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px 14px;
   border-radius: 8px;
   color: #dbe7f2;
@@ -288,6 +449,26 @@ $breakpoint: '<=900px';
   &:hover {
     color: $white;
     background: rgba(255, 255, 255, 0.1);
+  }
+
+  span {
+    display: inline-grid;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 7px;
+    color: #0f2f2d;
+    background: #9de5db;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -306,6 +487,7 @@ $breakpoint: '<=900px';
   overflow: auto;
   flex: 1 1 100%;
   padding: 28px;
+  color: var(--app-text, #172033);
 
   @include media($breakpoint) {
     overflow: visible;

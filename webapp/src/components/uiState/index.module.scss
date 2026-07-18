@@ -1,0 +1,92 @@
+.state {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  padding: 28px;
+  border: 1px solid var(--app-border, #dce5ef);
+  border-radius: 8px;
+  color: var(--app-muted, #526075);
+  background: var(--app-surface, #fff);
+  text-align: center;
+}
+
+.stateInner {
+  display: grid;
+  max-width: 520px;
+  gap: 10px;
+}
+
+.state strong {
+  color: var(--app-text, #172033);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.state p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  color: #0f2f2d;
+  background: #9de5db;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.skeleton {
+  display: grid;
+  gap: 14px;
+}
+
+.skeletonLine,
+.skeletonCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--app-skeleton, #e8eef5);
+}
+
+.skeletonLine::after,
+.skeletonCard::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.52), transparent);
+  animation: shimmer 1.35s infinite;
+}
+
+.skeletonLine {
+  height: 18px;
+}
+
+.skeletonCard {
+  min-height: 120px;
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}

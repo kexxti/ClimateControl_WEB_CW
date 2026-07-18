@@ -2,11 +2,17 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { defaultPidParams, settingsData } from '../data/mockData';
 import { algorithmUiToCode } from './roomRepository';
-import type { Algorithm, ClimateMode, PidParams } from '../types/climate';
+import type { Algorithm, PidParams } from '../types/climate';
 
 type ApplicationSettings = typeof settingsData.application;
 
 type SystemSettings = typeof settingsData.system;
+
+const normalizeApplicationSettings = (settings: Partial<ApplicationSettings>): ApplicationSettings => ({
+  ...settingsData.application,
+  ...settings,
+  theme: settings.theme === 'dark' ? 'dark' : 'light',
+});
 
 const getJsonSetting = async <T>(key: string, fallback: T): Promise<T> => {
   const setting = await prisma.systemSetting.findUnique({
@@ -18,7 +24,7 @@ const getJsonSetting = async <T>(key: string, fallback: T): Promise<T> => {
   return (setting?.value as T | undefined) ?? fallback;
 };
 
-const upsertJsonSetting = async (key: string, value: Prisma.InputJsonValue) => {
+const upsertJsonSetting = (key: string, value: Prisma.InputJsonValue) => {
   return prisma.systemSetting.upsert({
     where: {
       key,
@@ -33,24 +39,71 @@ const upsertJsonSetting = async (key: string, value: Prisma.InputJsonValue) => {
   });
 };
 
-export const getSettings = async () => {
-  const application = await getJsonSetting<ApplicationSettings>('application_settings', settingsData.application);
+const getUserTheme = async (userId: bigint) => {
+  const themeSetting = await prisma.userSetting.findUnique({
+    where: {
+      userId_key: {
+        userId,
+        key: 'theme',
+      },
+    },
+  });
+
+  return themeSetting?.value === 'dark' ? 'dark' : themeSetting?.value === 'light' ? 'light' : null;
+};
+
+const upsertUserTheme = (userId: bigint, theme: ApplicationSettings['theme']) => {
+  return prisma.userSetting.upsert({
+    where: {
+      userId_key: {
+        userId,
+        key: 'theme',
+      },
+    },
+    update: {
+      value: theme,
+    },
+    create: {
+      userId,
+      key: 'theme',
+      value: theme,
+    },
+  });
+};
+
+export const getSettings = async (userId: bigint) => {
+  const systemApplication = normalizeApplicationSettings(
+    await getJsonSetting<Partial<ApplicationSettings>>('application_settings', settingsData.application),
+  );
+  const userTheme = await getUserTheme(userId);
   const system = await getJsonSetting<SystemSettings>('system_settings', settingsData.system);
   const pidParams = await getJsonSetting<PidParams>('pid_params', defaultPidParams);
 
   return {
-    application,
+    application: {
+      ...systemApplication,
+      theme: userTheme ?? settingsData.application.theme,
+    },
     system,
     pidParams,
   };
 };
 
-export const updateApplicationSettings = async (settings: ApplicationSettings) => {
-  await upsertJsonSetting('application_settings', settings);
-  return getSettings();
+export const updateApplicationSettings = async (userId: bigint, settings: ApplicationSettings) => {
+  const normalizedSettings = normalizeApplicationSettings(settings);
+
+  await prisma.$transaction([
+    upsertUserTheme(userId, normalizedSettings.theme),
+    upsertJsonSetting('application_settings', {
+      refreshInterval: normalizedSettings.refreshInterval,
+      connectionProfile: normalizedSettings.connectionProfile,
+    }),
+  ]);
+
+  return getSettings(userId);
 };
 
-export const updateSystemSettings = async (settings: SystemSettings & { pidParams: PidParams }) => {
+export const updateSystemSettings = async (userId: bigint, settings: SystemSettings & { pidParams: PidParams }) => {
   const { pidParams, ...system } = settings;
 
   await prisma.$transaction([
@@ -80,7 +133,7 @@ export const updateSystemSettings = async (settings: SystemSettings & { pidParam
     }),
   ]);
 
-  return getSettings();
+  return getSettings(userId);
 };
 
 export const applyAlgorithmToRooms = async ({

@@ -43,22 +43,61 @@ export const rooms = [
   },
 ] satisfies Room[];
 
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const makeDate = (hour: number) => new Date(today.getTime() + hour * 60 * 60 * 1000);
+
+const makeRoomHistoryPoint = (hour: number, temp: number, setpoint: number): RoomHistoryPoint => {
+  const date = makeDate(hour);
+  return {
+    time: date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: date.toISOString(),
+    bucketStart: date.toISOString(),
+    bucketEnd: date.toISOString(),
+    temp,
+    setpoint,
+    power: null,
+    minTemp: temp,
+    maxTemp: temp,
+    count: 1,
+    setpointChanged: false,
+    isAggregated: false,
+  };
+};
+
+const makeBuildingHistoryPoint = (hour: number, avgTemp: number, avgSetpoint: number): BuildingHistoryPoint => {
+  const date = makeDate(hour);
+  return {
+    time: date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: date.toISOString(),
+    bucketStart: date.toISOString(),
+    bucketEnd: date.toISOString(),
+    avgTemp,
+    avgSetpoint,
+    avgPower: null,
+    minTemp: avgTemp,
+    maxTemp: avgTemp,
+    count: rooms.length,
+  };
+};
+
 export const selectedRoomHistory = [
-  { time: '09:00', temp: 21.5, setpoint: 23 },
-  { time: '10:00', temp: 22.1, setpoint: 23 },
-  { time: '11:00', temp: 22.8, setpoint: 23 },
-  { time: '12:00', temp: 23.4, setpoint: 23 },
-  { time: '13:00', temp: 23.1, setpoint: 23 },
-  { time: '14:00', temp: 22.7, setpoint: 23 },
+  makeRoomHistoryPoint(9, 21.5, 23),
+  makeRoomHistoryPoint(10, 22.1, 23),
+  makeRoomHistoryPoint(11, 22.8, 23),
+  makeRoomHistoryPoint(12, 23.4, 23),
+  makeRoomHistoryPoint(13, 23.1, 23),
+  makeRoomHistoryPoint(14, 22.7, 23),
 ] satisfies RoomHistoryPoint[];
 
 export const buildingHistory = [
-  { time: '09:00', avgTemp: 21.4, avgSetpoint: 22.4 },
-  { time: '10:00', avgTemp: 21.8, avgSetpoint: 22.3 },
-  { time: '11:00', avgTemp: 22.6, avgSetpoint: 22.5 },
-  { time: '12:00', avgTemp: 22.1, avgSetpoint: 22.4 },
-  { time: '13:00', avgTemp: 22.9, avgSetpoint: 22.5 },
-  { time: '14:00', avgTemp: 22.5, avgSetpoint: 22.4 },
+  makeBuildingHistoryPoint(9, 21.4, 22.4),
+  makeBuildingHistoryPoint(10, 21.8, 22.3),
+  makeBuildingHistoryPoint(11, 22.6, 22.5),
+  makeBuildingHistoryPoint(12, 22.1, 22.4),
+  makeBuildingHistoryPoint(13, 22.9, 22.5),
+  makeBuildingHistoryPoint(14, 22.5, 22.4),
 ] satisfies BuildingHistoryPoint[];
 
 export const historyTimes = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00'];
@@ -74,7 +113,7 @@ export const defaultPidParams = {
 
 export const settingsData = {
   application: {
-    theme: 'system',
+    theme: 'light',
     refreshInterval: '30 sec',
     connectionProfile: 'localhost',
   },

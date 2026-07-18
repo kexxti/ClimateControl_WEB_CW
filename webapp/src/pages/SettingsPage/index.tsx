@@ -5,19 +5,15 @@ import { RequireRole } from '../../lib/RequireRole';
 import { getDashboard } from '../../lib/routes';
 import { useToast } from '../../lib/toast';
 import { trpc } from '../../lib/trpcClient';
+import { EmptyState, ErrorState, LoadingState } from '../../components/uiState';
+import { algorithmOptions, climateModeLabel, type Algorithm, type ClimateMode } from '../../lib/climate';
 import styles from './index.module.scss';
 
-type Algorithm = 'PID' | 'On/Off' | 'Time' | 'ML';
-type ClimateMode = 'standard' | 'energySaving' | 'energy_saving' | 'night' | 'manual';
 type UserRole = 'admin' | 'user';
+type AppTheme = 'light' | 'dark';
+type SettingsSection = 'application' | 'system' | 'users';
 
-const modeLabel: Record<ClimateMode, string> = {
-  standard: 'Обычный',
-  energySaving: 'Энергосберегающий',
-  energy_saving: 'Энергосберегающий',
-  night: 'Ночной',
-  manual: 'Ручной',
-};
+const normalizeTheme = (theme: string): AppTheme => (theme === 'dark' ? 'dark' : 'light');
 
 export const SettingsPage = () => {
   const utils = trpc.useContext();
@@ -28,7 +24,7 @@ export const SettingsPage = () => {
   const { data: users, error: usersError } = trpc.users.getAll.useQuery(undefined, {
     enabled: isAdmin,
   });
-  const [themeDraft, setThemeDraft] = useState<string | null>(null);
+  const [themeDraft, setThemeDraft] = useState<AppTheme | null>(null);
   const [refreshIntervalDraft, setRefreshIntervalDraft] = useState<string | null>(null);
   const [connectionProfileDraft, setConnectionProfileDraft] = useState<string | null>(null);
   const [algorithmDraft, setAlgorithmDraft] = useState<Algorithm | null>(null);
@@ -39,6 +35,11 @@ export const SettingsPage = () => {
   const [newUserLogin, setNewUserLogin] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('user');
+  const [openSections, setOpenSections] = useState<Record<SettingsSection, boolean>>({
+    application: true,
+    system: true,
+    users: true,
+  });
 
   useEffect(() => {
     if (!data) {
@@ -116,19 +117,23 @@ export const SettingsPage = () => {
     onError: (mutationError) => showToast({ tone: 'error', title: 'Не удалось отключить пользователя', message: mutationError.message }),
   });
 
+  const toggleSection = (section: SettingsSection) => {
+    setOpenSections((current) => ({ ...current, [section]: !current[section] }));
+  };
+
   if (isLoading || isFetching) {
-    return <div className={styles.state}>Загрузка настроек...</div>;
+    return <LoadingState title="Загрузка настроек..." />;
   }
 
   if (isError) {
-    return <div className={styles.state}>Ошибка: {error.message}</div>;
+    return <ErrorState message={error.message} />;
   }
 
   if (!data) {
-    return <div className={styles.state}>Нет данных настроек</div>;
+    return <EmptyState title="Нет данных настроек" message="Backend не вернул конфигурацию приложения." />;
   }
 
-  const theme = themeDraft ?? data.application.theme;
+  const theme = themeDraft ?? normalizeTheme(data.application.theme);
   const refreshInterval = refreshIntervalDraft ?? data.application.refreshInterval;
   const connectionProfile = connectionProfileDraft ?? data.application.connectionProfile;
   const algorithm = algorithmDraft ?? data.system.algorithm;
@@ -157,57 +162,68 @@ export const SettingsPage = () => {
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
           <h2>Настройки приложения</h2>
-        </div>
-        <div className={styles.settingsGrid}>
-          <label>
-            <span>Тема</span>
-            <select value={theme} onChange={(event) => setThemeDraft(event.target.value)}>
-              <option value="system">Системная</option>
-              <option value="light">Светлая</option>
-              <option value="contrast">Контрастная</option>
-            </select>
-          </label>
-          <label>
-            <span>Интервал обновления</span>
-            <select value={refreshInterval} onChange={(event) => setRefreshIntervalDraft(event.target.value)}>
-              <option value="10 sec">10 секунд</option>
-              <option value="30 sec">30 секунд</option>
-              <option value="1 min">1 минута</option>
-              <option value="5 min">5 минут</option>
-            </select>
-          </label>
-          <label>
-            <span>Параметры подключения</span>
-            <select value={connectionProfile} onChange={(event) => setConnectionProfileDraft(event.target.value)}>
-              <option value="localhost">localhost</option>
-              <option value="test-stand">Тестовый стенд</option>
-              <option value="production">Production</option>
-            </select>
-          </label>
-        </div>
-        <div className={styles.actionsRow}>
-          <button
-            type="button"
-            disabled={isSaving}
-            onClick={() =>
-              updateApplicationSettings.mutate({
-                theme,
-                refreshInterval,
-                connectionProfile,
-              })
-            }
-          >
-            Сохранить настройки приложения
+          <button type="button" onClick={() => toggleSection('application')}>
+            {openSections.application ? 'Свернуть' : 'Развернуть'}
           </button>
         </div>
+        {openSections.application ? (
+          <>
+            <div className={styles.settingsGrid}>
+              <label>
+                <span>Тема</span>
+                <select value={theme} onChange={(event) => setThemeDraft(event.target.value as AppTheme)}>
+                  <option value="light">Светлая</option>
+                  <option value="dark">Тёмная</option>
+                </select>
+              </label>
+              <label>
+                <span>Интервал обновления</span>
+                <select value={refreshInterval} onChange={(event) => setRefreshIntervalDraft(event.target.value)}>
+                  <option value="10 sec">10 секунд</option>
+                  <option value="30 sec">30 секунд</option>
+                  <option value="1 min">1 минута</option>
+                  <option value="5 min">5 минут</option>
+                </select>
+              </label>
+              <label>
+                <span>Параметры подключения</span>
+                <select value={connectionProfile} onChange={(event) => setConnectionProfileDraft(event.target.value)}>
+                  <option value="localhost">localhost</option>
+                  <option value="test-stand">Тестовый стенд</option>
+                  <option value="production">Production</option>
+                </select>
+              </label>
+            </div>
+            <div className={styles.actionsRow}>
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() =>
+                  updateApplicationSettings.mutate({
+                    theme,
+                    refreshInterval,
+                    connectionProfile,
+                  })
+                }
+              >
+                Сохранить настройки приложения
+              </button>
+            </div>
+          </>
+        ) : null}
       </section>
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
           <h2>Настройки системы</h2>
+          <button type="button" onClick={() => toggleSection('system')}>
+            {openSections.system ? 'Свернуть' : 'Развернуть'}
+          </button>
         </div>
-        {!isAdmin ? <div className={styles.roleNotice}>Для изменения системных настроек требуется роль admin.</div> : null}
-        <div className={styles.settingsGrid}>
+        {openSections.system ? (
+          <>
+            {!isAdmin ? <div className={styles.roleNotice}>Для изменения системных настроек требуется роль admin.</div> : null}
+            <div className={styles.settingsGrid}>
           <label>
             <span>Алгоритм</span>
             <div className={styles.inlineControl}>
@@ -220,19 +236,18 @@ export const SettingsPage = () => {
                 Назначить всем
               </button>
               <select value={algorithm} onChange={(event) => setAlgorithmDraft(event.target.value as Algorithm)}>
-                <option>PID</option>
-                <option>On/Off</option>
-                <option>Time</option>
-                <option>ML</option>
+                {algorithmOptions.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
               </select>
             </div>
           </label>
           <label>
             <span>Режим</span>
             <select value={mode} onChange={(event) => setModeDraft(event.target.value as ClimateMode)}>
-              {(Object.keys(modeLabel) as ClimateMode[]).map((item) => (
+              {(Object.keys(climateModeLabel) as ClimateMode[]).map((item) => (
                 <option key={item} value={item}>
-                  {modeLabel[item]}
+                  {climateModeLabel[item]}
                 </option>
               ))}
             </select>
@@ -253,9 +268,9 @@ export const SettingsPage = () => {
               <option value="floor">Текущий этаж</option>
             </select>
           </label>
-        </div>
+            </div>
 
-        <div className={styles.pidGrid}>
+            <div className={styles.pidGrid}>
           <label>
             <span>Kp</span>
             <input
@@ -292,8 +307,8 @@ export const SettingsPage = () => {
               onChange={(event) => setPidDraft((current) => ({ ...current, hysteresis: Number(event.target.value) }))}
             />
           </label>
-        </div>
-        <div className={styles.actionsRow}>
+            </div>
+            <div className={styles.actionsRow}>
           <button
             type="button"
             disabled={isSaving || !isAdmin}
@@ -310,14 +325,20 @@ export const SettingsPage = () => {
           >
             Сохранить настройки системы
           </button>
-        </div>
+            </div>
+          </>
+        ) : null}
       </section>
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
           <h2>Пользователи</h2>
+          <button type="button" onClick={() => toggleSection('users')}>
+            {openSections.users ? 'Свернуть' : 'Развернуть'}
+          </button>
         </div>
-        <RequireRole role="admin" fallback={<div className={styles.roleNotice}>Управление пользователями доступно только администратору.</div>}>
+        {openSections.users ? (
+          <RequireRole role="admin" fallback={<div className={styles.roleNotice}>Управление пользователями доступно только администратору.</div>}>
           <>
             <div className={styles.settingsGrid}>
               <label>
@@ -347,7 +368,10 @@ export const SettingsPage = () => {
             </div>
 
             {usersError ? <div className={styles.state}>Ошибка пользователей: {usersError.message}</div> : null}
-            {users ? (
+            {users && users.length === 0 ? (
+              <EmptyState title="Пользователей нет" message="Создайте первого пользователя с нужной ролью." />
+            ) : null}
+            {users && users.length > 0 ? (
               <div className={styles.tableWrap}>
                 <table className={styles.usersTable}>
                   <thead>
@@ -385,7 +409,8 @@ export const SettingsPage = () => {
               </div>
             ) : null}
           </>
-        </RequireRole>
+          </RequireRole>
+        ) : null}
       </section>
     </section>
   );

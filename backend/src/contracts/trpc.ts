@@ -26,14 +26,30 @@ export const roomSchema = z.object({
 
 export const roomHistoryPointSchema = z.object({
   time: z.string(),
+  timestamp: isoDateStringSchema,
+  bucketStart: isoDateStringSchema,
+  bucketEnd: isoDateStringSchema,
   temp: z.number(),
   setpoint: z.number(),
+  power: z.number().nullable(),
+  minTemp: z.number(),
+  maxTemp: z.number(),
+  count: z.number().int().nonnegative(),
+  setpointChanged: z.boolean(),
+  isAggregated: z.boolean(),
 });
 
 export const buildingHistoryPointSchema = z.object({
   time: z.string(),
+  timestamp: isoDateStringSchema,
+  bucketStart: isoDateStringSchema,
+  bucketEnd: isoDateStringSchema,
   avgTemp: z.number(),
   avgSetpoint: z.number(),
+  avgPower: z.number().nullable(),
+  minTemp: z.number(),
+  maxTemp: z.number(),
+  count: z.number().int().nonnegative(),
 });
 
 export const pidParamsSchema = z.object({
@@ -45,6 +61,10 @@ export const pidParamsSchema = z.object({
 
 export const getRoomInputSchema = z.object({
   roomID: z.string().min(1),
+  period: z.enum(['day', 'week', 'month', 'custom']).default('day').optional(),
+  dateFrom: isoDateStringSchema.optional(),
+  dateTo: isoDateStringSchema.optional(),
+  bucket: z.enum(['auto', 'raw', 'minute', '15m', '30m', 'hour', 'day']).default('auto').optional(),
 });
 
 export const updateSetpointInputSchema = z.object({
@@ -62,9 +82,30 @@ export const updatePidParamsInputSchema = z.object({
   pidParams: pidParamsSchema,
 });
 
+export const createRoomInputSchema = z.object({
+  name: z.string().trim().min(1).max(160).optional(),
+  location: z.string().trim().max(255).optional(),
+  floor: z.number().int().min(-5).max(100).optional(),
+  setpoint: z.number().min(5).max(35),
+  algorithm: algorithmSchema,
+  criticalTemperature: z.number().min(5).max(80).default(35).optional(),
+  deviceUid: z.string().trim().min(3).max(120).optional(),
+  deviceName: z.string().trim().min(1).max(160).optional(),
+});
+
+export const softDeleteRoomInputSchema = z.object({
+  roomID: z.string().min(1),
+});
+
 export const roomDetailsOutputSchema = z.object({
   room: roomSchema.nullable(),
   history: z.array(roomHistoryPointSchema),
+  historyMeta: z.object({
+    period: z.enum(['day', 'week', 'month', 'custom']),
+    bucket: z.enum(['raw', 'minute', '15m', '30m', 'hour', 'day']),
+    dateFrom: isoDateStringSchema,
+    dateTo: isoDateStringSchema,
+  }),
   pidParams: pidParamsSchema,
 });
 
@@ -79,6 +120,12 @@ export const dashboardOutputSchema = z.object({
   selectedRoomHistory: z.array(roomHistoryPointSchema),
   roomHistories: z.record(z.string(), z.array(roomHistoryPointSchema)),
   buildingHistory: z.array(buildingHistoryPointSchema),
+  historyMeta: z.object({
+    period: z.enum(['day', 'week', 'month', 'custom']),
+    bucket: z.enum(['raw', 'minute', '15m', '30m', 'hour', 'day']),
+    dateFrom: isoDateStringSchema,
+    dateTo: isoDateStringSchema,
+  }),
   recentEvents: z.array(
     z.object({
       id: z.number().int().positive(),
@@ -119,7 +166,7 @@ export const statisticsOutputSchema = dashboardOutputSchema.extend({
 
 export const settingsOutputSchema = z.object({
   application: z.object({
-    theme: z.string(),
+    theme: z.enum(['light', 'dark']),
     refreshInterval: z.string(),
     connectionProfile: z.string(),
   }),
@@ -133,7 +180,7 @@ export const settingsOutputSchema = z.object({
 });
 
 export const updateApplicationSettingsInputSchema = z.object({
-  theme: z.string().min(1),
+  theme: z.enum(['light', 'dark']),
   refreshInterval: z.string().min(1),
   connectionProfile: z.string().min(1),
 });
@@ -201,5 +248,6 @@ export const statisticsAnalyticsInputSchema = z
     period: statisticsPeriodSchema.default('day'),
     dateFrom: isoDateStringSchema.optional(),
     dateTo: isoDateStringSchema.optional(),
+    bucket: z.enum(['auto', 'raw', 'minute', '15m', '30m', 'hour', 'day']).default('auto').optional(),
   })
   .optional();

@@ -6,15 +6,15 @@ import {
   updateSystemSettings,
 } from '../repositories/settingsRepository';
 
-export const getSettingsData = () => getSettings();
-
 export const changeApplicationSettings = (settings: {
   theme: string;
   refreshInterval: string;
   connectionProfile: string;
-}) => {
-  return updateApplicationSettings(settings);
+}, userId: bigint) => {
+  return updateApplicationSettings(userId, settings);
 };
+
+export const getSettingsData = (userId: bigint) => getSettings(userId);
 
 export const changeSystemSettings = (settings: {
   algorithm: Algorithm;
@@ -22,8 +22,8 @@ export const changeSystemSettings = (settings: {
   pidPreset: string;
   applyTarget: string;
   pidParams: PidParams;
-}) => {
-  return updateSystemSettings(settings);
+}, userId: bigint) => {
+  return updateSystemSettings(userId, settings);
 };
 
 export const applyAlgorithm = (input: {

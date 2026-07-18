@@ -11,11 +11,174 @@ body,
 }
 
 body {
+  --app-bg: #eef3f7;
+  --app-surface: #fff;
+  --app-surface-muted: #f8fafc;
+  --app-text: #172033;
+  --app-muted: #5d6678;
+  --app-border: #dce5ef;
+  --app-panel-header: #42505f;
+  --app-skeleton: #e8eef5;
+  --app-primary: #9de5db;
+  --app-primary-hover: #7bd9cd;
+  --app-primary-text: #0f2f2d;
+
   font-family: $defaultFontFamily;
   font-size: $defaultFontSize;
-  background: $defaultBackgroundColor;
-  color: $defaultTextColor;
+  background: var(--app-bg);
+  color: var(--app-text);
   line-height: $defaultLineHeight;
+}
+
+body[data-theme='dark'] {
+  --app-bg: #111827;
+  --app-surface: #182233;
+  --app-surface-muted: #223047;
+  --app-text: #e5edf7;
+  --app-muted: #a9b7ca;
+  --app-border: #334155;
+  --app-panel-header: #263247;
+  --app-skeleton: #29364b;
+  --app-primary: #9de5db;
+  --app-primary-hover: #b9f2eb;
+  --app-primary-text: #0f2f2d;
+}
+
+body[data-theme='dark'] input,
+body[data-theme='dark'] select,
+body[data-theme='dark'] textarea {
+  color: var(--app-text);
+  border-color: var(--app-border);
+  background: #111827;
+}
+
+body[data-theme='dark'] input::placeholder,
+body[data-theme='dark'] textarea::placeholder {
+  color: #73839a;
+}
+
+body[data-theme='dark'] :is(
+  [class*='card'],
+  [class*='Card'],
+  [class*='panel'],
+  [class*='Panel'],
+  [class*='metric'],
+  [class*='Metric'],
+  [class*='filters'],
+  [class*='Filters'],
+  [class*='modal'],
+  [class*='Modal'],
+  [class*='tableWrap'],
+  [class*='usersTable'],
+  [class*='chart'],
+  [class*='Chart']
+) {
+  color: var(--app-text);
+  border-color: var(--app-border);
+  background-color: var(--app-surface);
+}
+
+body[data-theme='dark'] :is(
+  [class*='Header'],
+  [class*='header'],
+  [class*='panelHeader'],
+  [class*='modalHeader']
+) {
+  border-color: var(--app-border);
+}
+
+body[data-theme='dark'] :is(
+  p,
+  small,
+  figcaption,
+  dt,
+  [class*='userState'],
+  [class*='feedback'],
+  [class*='legend']
+) {
+  color: var(--app-muted);
+}
+
+body[data-theme='dark'] :is(
+  h1,
+  h2,
+  h3,
+  label,
+  dd,
+  [class*='metric'] span,
+  [class*='filters'] span,
+  [class*='settingsGrid'] span
+) {
+  color: var(--app-text);
+}
+
+body[data-theme='dark'] :is(
+  [class*='settingsGrid'],
+  [class*='controlsGrid'],
+  [class*='pidGrid'],
+  [class*='currentGrid'],
+  [class*='statsGrid'],
+  [class*='algorithms'],
+  [class*='profileBlock'],
+  [class*='userMenu'],
+  [class*='dateFields']
+) {
+  color: var(--app-text);
+  background-color: transparent;
+}
+
+body[data-theme='dark'] :is(
+  [class*='metric'],
+  [class*='statsGrid'] div,
+  [class*='profileBlock']
+) {
+  border-color: var(--app-border);
+  background-color: var(--app-surface-muted);
+}
+
+body[data-theme='dark'] :is(
+  [class*='roleNotice'],
+  [class*='modeNotice']
+) {
+  border-color: rgba(250, 204, 21, 0.52);
+  color: #fde68a;
+  background-color: rgba(250, 204, 21, 0.13);
+}
+
+body[data-theme='dark'] table {
+  color: var(--app-text);
+  background: var(--app-surface);
+}
+
+body[data-theme='dark'] th {
+  color: #d9e5f5;
+  background: var(--app-surface-muted);
+}
+
+body[data-theme='dark'] td {
+  border-color: var(--app-border);
+}
+
+body[data-theme='dark'] tr:hover {
+  background: rgba(157, 229, 219, 0.08);
+}
+
+body[data-theme='dark'] button:disabled,
+body[data-theme='dark'] input:disabled,
+body[data-theme='dark'] select:disabled {
+  opacity: 0.58;
+}
+
+body[data-theme='dark'] svg {
+  color: var(--app-muted);
+}
+
+body[data-theme='dark'] :is(.domain, .tick line) {
+  stroke: #64748b;
+}
+
+body[data-theme='dark'] :is(.tick text) {
+  fill: var(--app-muted);
 }
 
 *,
@@ -24,6 +187,22 @@ body {
   box-sizing: border-box;
 }
 
+* {
+  overflow-wrap: anywhere;
+}
+
+button,
+a,
+input,
+select {
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
 a {
   text-decoration: none;
-} 
+}

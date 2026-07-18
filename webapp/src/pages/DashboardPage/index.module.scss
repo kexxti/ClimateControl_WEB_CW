@@ -4,7 +4,7 @@ $breakpoint: '<=980px';
 
 .dashboard {
   min-height: 100%;
-  color: #172033;
+  color: var(--app-text, #172033);
 }
 
 .header {
@@ -24,7 +24,7 @@ $breakpoint: '<=980px';
   p {
     margin: 0;
     max-width: 620px;
-    color: #5d6678;
+    color: var(--app-muted, #5d6678);
     line-height: 1.5;
   }
 
@@ -36,14 +36,14 @@ $breakpoint: '<=980px';
 .headerMetric {
   min-width: 220px;
   padding: 16px 18px;
-  border: 1px solid #dbe4ee;
+  border: 1px solid var(--app-border, #dbe4ee);
   border-radius: 8px;
-  background: #f7fafc;
+  background: var(--app-surface-muted, #f7fafc);
 
   span {
     display: block;
     margin-bottom: 6px;
-    color: #677286;
+    color: var(--app-muted, #677286);
     font-size: 13px;
   }
 
@@ -94,9 +94,9 @@ $breakpoint: '<=980px';
 }
 
 .card {
-  border: 1px solid #dce5ef;
+  border: 1px solid var(--app-border, #dce5ef);
   border-radius: 8px;
-  background: #fff;
+  background: var(--app-surface, #fff);
   box-shadow: 0 10px 28px rgba(25, 39, 64, 0.08);
 
   h2 {
@@ -123,7 +123,7 @@ $breakpoint: '<=980px';
   }
 
   span {
-    color: #657184;
+    color: var(--app-muted, #657184);
     font-size: 13px;
     white-space: nowrap;
   }
@@ -132,6 +132,99 @@ $breakpoint: '<=980px';
     align-items: flex-start;
     flex-direction: column;
     gap: 6px;
+  }
+}
+
+.cardHeaderActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+
+  button {
+    min-height: 34px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    color: #0f2f2d;
+    background: #9de5db;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+
+    &:hover {
+      background: #7bd9cd;
+    }
+  }
+}
+
+.roomForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 22px 0;
+  padding: 16px;
+  border: 1px solid var(--app-border, #dce5ef);
+  border-radius: 8px;
+  background: var(--app-surface-muted, #f8fafc);
+
+  label {
+    display: grid;
+    gap: 8px;
+    color: var(--app-text, #172033);
+    font-weight: 800;
+  }
+
+  span {
+    color: var(--app-muted, #657184);
+    font-size: 13px;
+  }
+
+  input,
+  select {
+    min-height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--app-border, #ccd8e4);
+    border-radius: 8px;
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
+    font: inherit;
+  }
+
+  @include media($breakpoint) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include media('<=640px') {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formActions {
+  display: flex;
+  align-items: end;
+
+  button {
+    width: 100%;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    color: #0f2f2d;
+    background: #9de5db;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: #7bd9cd;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
   }
 }
 
@@ -144,9 +237,9 @@ $breakpoint: '<=980px';
   div {
     min-height: 92px;
     padding: 14px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--app-border, #e2e8f0);
     border-radius: 8px;
-    background: #f8fafc;
+    background: var(--app-surface-muted, #f8fafc);
   }
 
   div:last-child {
@@ -155,13 +248,13 @@ $breakpoint: '<=980px';
 
   dt {
     margin-bottom: 10px;
-    color: #687387;
+    color: var(--app-muted, #687387);
     font-size: 13px;
   }
 
   dd {
     margin: 0;
-    color: #13213a;
+    color: var(--app-text, #13213a);
     font-size: 28px;
     font-weight: 800;
   }
@@ -169,13 +262,14 @@ $breakpoint: '<=980px';
 
 .algorithms {
   padding: 16px;
+  border: 1px solid var(--app-border, transparent);
   border-radius: 8px;
-  background: #eef7f5;
+  background: var(--app-surface-muted, #eef7f5);
 
   span {
     display: block;
     margin-bottom: 12px;
-    color: #35524e;
+    color: var(--app-text, #35524e);
     font-weight: 700;
   }
 
@@ -186,13 +280,19 @@ $breakpoint: '<=980px';
     margin: 0;
     padding: 0;
     list-style: none;
-    color: #26364f;
+    color: var(--app-muted, #26364f);
   }
 }
 
 .tableWrap {
   overflow-x: auto;
   padding: 18px 22px 22px;
+}
+
+.tableEmpty {
+  padding: 18px 0 0;
+  color: var(--app-muted, #657184);
+  font-weight: 800;
 }
 
 .table {
@@ -203,16 +303,16 @@ $breakpoint: '<=980px';
   th,
   td {
     padding: 13px 12px;
-    border-bottom: 1px solid #e6edf4;
+    border-bottom: 1px solid var(--app-border, #e6edf4);
     text-align: left;
     vertical-align: middle;
   }
 
   th {
-    color: #506078;
+    color: var(--app-muted, #506078);
     font-size: 13px;
     font-weight: 800;
-    background: #edf2f7;
+    background: var(--app-surface-muted, #edf2f7);
   }
 
   tbody tr {
@@ -220,13 +320,13 @@ $breakpoint: '<=980px';
     transition: background 160ms ease;
 
     &:hover {
-      background: #f5f9fc;
+      background: rgba(157, 229, 219, 0.12);
     }
   }
 }
 
 .selectedRow {
-  background: #e8f3ff;
+  background: rgba(18, 97, 166, 0.12);
 }
 
 .roomLink {
@@ -237,15 +337,56 @@ $breakpoint: '<=980px';
   text-underline-offset: 3px;
 }
 
+.deleteRoomButton {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  border-radius: 8px;
+  color: #991b1b;
+  background: #fee2e2;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #fecaca;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.62;
+  }
+}
+
+:global(body[data-theme='dark']) {
+  .deleteRoomButton {
+    color: #fecaca;
+    background: rgba(248, 113, 113, 0.14);
+
+    &:hover:not(:disabled) {
+      background: rgba(248, 113, 113, 0.22);
+    }
+  }
+}
+
 .status {
   display: inline-flex;
   align-items: center;
+  gap: 7px;
   min-width: 92px;
   justify-content: center;
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 800;
+
+  &::before {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    content: '';
+    background: currentColor;
+  }
 }
 
 .heating {
@@ -295,19 +436,19 @@ $breakpoint: '<=980px';
     gap: 12px;
     align-items: start;
     padding: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--app-border, #e2e8f0);
     border-radius: 8px;
-    background: #f8fafc;
+    background: var(--app-surface-muted, #f8fafc);
   }
 
   strong {
     display: block;
     margin-bottom: 4px;
-    color: #172033;
+    color: var(--app-text, #172033);
   }
 
   small {
-    color: #64748b;
+    color: var(--app-muted, #64748b);
   }
 }
 
@@ -364,18 +505,18 @@ $breakpoint: '<=980px';
   width: 100%;
   height: auto;
   min-height: 260px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border, #e2e8f0);
   border-radius: 8px;
-  background: #fbfdff;
+  background: var(--app-surface-muted, #fbfdff);
 }
 
 .axis {
-  color: #53627a;
+  color: var(--app-muted, #53627a);
   font-size: 12px;
 }
 
 .grid {
-  color: #d9e2ec;
+  color: var(--app-border, #d9e2ec);
 }
 
 .grid path {
@@ -385,11 +526,13 @@ $breakpoint: '<=980px';
 .tempBar,
 .avgTempLegend {
   fill: #0f766e;
+  cursor: pointer;
 }
 
 .setpointBar,
 .avgSetpointLegend {
   fill: #94a3b8;
+  cursor: pointer;
 }
 
 .avgTempLine {
@@ -412,10 +555,25 @@ $breakpoint: '<=980px';
   fill: #fff;
   stroke: #0f766e;
   stroke-width: 3;
+  cursor: pointer;
+}
+
+.tooltip {
+  pointer-events: none;
+
+  rect {
+    fill: rgba(15, 23, 42, 0.92);
+  }
+
+  text {
+    fill: #fff;
+    font-size: 12px;
+    font-weight: 700;
+  }
 }
 
 .legend {
-  fill: #516174;
+  fill: var(--app-muted, #516174);
   font-size: 12px;
   font-weight: 700;
 }
@@ -424,6 +582,52 @@ $breakpoint: '<=980px';
   display: grid;
   min-height: 280px;
   place-items: center;
-  color: #526075;
+  color: var(--app-muted, #526075);
   font-size: 16px;
+}
+
+:global(body[data-theme='dark']) {
+  .selectedRow {
+    background: rgba(157, 229, 219, 0.16);
+  }
+
+  .roomLink {
+    color: #9de5db;
+  }
+
+  .avgTempDot {
+    fill: var(--app-surface, #182233);
+  }
+
+  .heating {
+    color: #fed7aa;
+    background: rgba(251, 146, 60, 0.18);
+  }
+
+  .cooling {
+    color: #bfdbfe;
+    background: rgba(96, 165, 250, 0.18);
+  }
+
+  .stable,
+  .info {
+    color: #99f6e4;
+    background: rgba(45, 212, 191, 0.14);
+  }
+
+  .offline {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.16);
+  }
+
+  .error,
+  .critical {
+    color: #fecaca;
+    background: rgba(248, 113, 113, 0.16);
+  }
+
+  .warning {
+    color: #fde68a;
+    background: rgba(250, 204, 21, 0.16);
+  }
 }

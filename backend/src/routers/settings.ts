@@ -7,14 +7,14 @@ import {
 import { applyAlgorithm, changeApplicationSettings, changeSystemSettings, getSettingsData } from '../services/settingsService';
 
 const nestedSettingsRouter = trpc.router({
-  get: protectedProcedure.query(() => {
-    return getSettingsData();
+  get: protectedProcedure.query(({ ctx }) => {
+    return getSettingsData(ctx.user.id);
   }),
-  updateApplicationSettings: protectedProcedure.input(updateApplicationSettingsInputSchema).mutation(({ input }) => {
-    return changeApplicationSettings(input);
+  updateApplicationSettings: protectedProcedure.input(updateApplicationSettingsInputSchema).mutation(({ ctx, input }) => {
+    return changeApplicationSettings(input, ctx.user.id);
   }),
-  updateSystemSettings: adminProcedure.input(updateSystemSettingsInputSchema).mutation(({ input }) => {
-    return changeSystemSettings(input);
+  updateSystemSettings: adminProcedure.input(updateSystemSettingsInputSchema).mutation(({ ctx, input }) => {
+    return changeSystemSettings(input, ctx.user.id);
   }),
   applyAlgorithmToRooms: adminProcedure.input(applyAlgorithmToRoomsInputSchema).mutation(({ input }) => {
     return applyAlgorithm(input);
@@ -23,7 +23,7 @@ const nestedSettingsRouter = trpc.router({
 
 export const settingsRouter = {
   settings: nestedSettingsRouter,
-  getSettingsData: protectedProcedure.query(() => {
-    return getSettingsData();
+  getSettingsData: protectedProcedure.query(({ ctx }) => {
+    return getSettingsData(ctx.user.id);
   }),
 };

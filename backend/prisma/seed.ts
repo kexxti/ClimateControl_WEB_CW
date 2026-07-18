@@ -44,6 +44,40 @@ const main = async () => {
     },
   });
 
+  await prisma.userSetting.upsert({
+    where: {
+      userId_key: {
+        userId: admin.id,
+        key: 'theme',
+      },
+    },
+    update: {
+      value: 'dark',
+    },
+    create: {
+      userId: admin.id,
+      key: 'theme',
+      value: 'dark',
+    },
+  });
+
+  await prisma.userSetting.upsert({
+    where: {
+      userId_key: {
+        userId: user.id,
+        key: 'theme',
+      },
+    },
+    update: {
+      value: 'light',
+    },
+    create: {
+      userId: user.id,
+      key: 'theme',
+      value: 'light',
+    },
+  });
+
   const pidAlgorithm = await prisma.regulationAlgorithm.upsert({
     where: { code: 'PID' },
     update: {},

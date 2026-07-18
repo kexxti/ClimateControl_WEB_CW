@@ -1,8 +1,8 @@
 import { prisma } from '../lib/prisma';
 import { getRecentImportantEvents } from '../repositories/eventRepository';
 import { getRooms } from '../repositories/roomRepository';
-import { buildRoomHistoryPoints } from './historyService';
-import type { Room, RoomHistoryPoint, RoomStatus } from '../types/climate';
+import { buildRoomHistoryPoints, getHistoryRange, resolveHistoryMeta } from './historyService';
+import type { BuildingHistoryPoint, HistoryBucket, HistoryMeta, Room, RoomHistoryPoint, RoomStatus } from '../types/climate';
 
 type StatisticsPeriod = 'day' | 'week' | 'month' | 'custom';
 
@@ -11,32 +11,17 @@ type StatisticsAnalyticsInput = {
   period?: StatisticsPeriod;
   dateFrom?: string;
   dateTo?: string;
+  bucket?: HistoryBucket;
 };
 
-const getPeriodRange = (input?: StatisticsAnalyticsInput) => {
-  const now = new Date();
-  const period = input?.period ?? 'day';
-
-  if (period === 'custom') {
-    return {
-      dateFrom: input?.dateFrom ? new Date(input.dateFrom) : new Date(now.getTime() - 24 * 60 * 60 * 1000),
-      dateTo: input?.dateTo ? new Date(input.dateTo) : now,
-    };
-  }
-
-  const durationMsByPeriod: Record<Exclude<StatisticsPeriod, 'custom'>, number> = {
-    day: 24 * 60 * 60 * 1000,
-    week: 7 * 24 * 60 * 60 * 1000,
-    month: 30 * 24 * 60 * 60 * 1000,
-  };
-
-  return {
-    dateFrom: new Date(now.getTime() - durationMsByPeriod[period]),
-    dateTo: now,
-  };
-};
-
-const buildRoomHistories = async (rooms: Room[], period: StatisticsPeriod, dateFrom: Date, dateTo: Date) => {
+const buildRoomHistories = async (
+  rooms: Room[],
+  period: StatisticsPeriod,
+  dateFrom: Date,
+  dateTo: Date,
+  bucket?: HistoryBucket,
+): Promise<{ roomHistories: Record<string, RoomHistoryPoint[]>; historyMeta: HistoryMeta }> => {
+  let maxMeasurementsCount = 0;
   const entries = await Promise.all(
     rooms.map(async (room) => {
       const roomId = BigInt(room.id ?? 0);
@@ -70,6 +55,7 @@ const buildRoomHistories = async (rooms: Room[], period: StatisticsPeriod, dateF
           },
         }),
       ]);
+      maxMeasurementsCount = Math.max(maxMeasurementsCount, measurements.length);
 
       const history = buildRoomHistoryPoints({
         measurements,
@@ -78,6 +64,9 @@ const buildRoomHistories = async (rooms: Room[], period: StatisticsPeriod, dateF
         currentSetpoint: room.setpoint,
         settingsUpdatedAt: settings?.updatedAt,
         period,
+        dateFrom,
+        dateTo,
+        bucket,
         appendCurrentPoint: dateTo.getTime() >= Date.now() - 60 * 1000,
       });
 
@@ -85,25 +74,69 @@ const buildRoomHistories = async (rooms: Room[], period: StatisticsPeriod, dateF
     }),
   );
 
-  return Object.fromEntries(entries);
+  return {
+    roomHistories: Object.fromEntries(entries),
+    historyMeta: resolveHistoryMeta({ period, dateFrom, dateTo, bucket }, maxMeasurementsCount),
+  };
 };
 
-const buildBuildingHistory = (roomHistories: Record<string, RoomHistoryPoint[]>) => {
-  const buckets = new Map<string, { temps: number[]; setpoints: number[] }>();
+const buildBuildingHistory = (roomHistories: Record<string, RoomHistoryPoint[]>): BuildingHistoryPoint[] => {
+  const buckets = new Map<
+    string,
+    {
+      time: string;
+      timestamp: string;
+      bucketStart: string;
+      bucketEnd: string;
+      temps: number[];
+      setpoints: number[];
+      powers: number[];
+      minTemps: number[];
+      maxTemps: number[];
+      count: number;
+    }
+  >();
 
   Object.values(roomHistories).forEach((history) => {
     history.forEach((point) => {
-      const bucket = buckets.get(point.time) ?? { temps: [], setpoints: [] };
+      const bucket = buckets.get(point.bucketStart) ?? {
+        time: point.time,
+        timestamp: point.timestamp,
+        bucketStart: point.bucketStart,
+        bucketEnd: point.bucketEnd,
+        temps: [],
+        setpoints: [],
+        powers: [],
+        minTemps: [],
+        maxTemps: [],
+        count: 0,
+      };
       bucket.temps.push(point.temp);
       bucket.setpoints.push(point.setpoint);
-      buckets.set(point.time, bucket);
+      if (point.power !== null) {
+        bucket.powers.push(point.power);
+      }
+      bucket.minTemps.push(point.minTemp);
+      bucket.maxTemps.push(point.maxTemp);
+      bucket.count += point.count;
+      buckets.set(point.bucketStart, bucket);
     });
   });
 
-  return [...buckets.entries()].map(([time, bucket]) => ({
-    time,
+  return [...buckets.values()].map((bucket) => ({
+    time: bucket.time,
+    timestamp: bucket.timestamp,
+    bucketStart: bucket.bucketStart,
+    bucketEnd: bucket.bucketEnd,
     avgTemp: Number((bucket.temps.reduce((sum, value) => sum + value, 0) / bucket.temps.length).toFixed(1)),
     avgSetpoint: Number((bucket.setpoints.reduce((sum, value) => sum + value, 0) / bucket.setpoints.length).toFixed(1)),
+    avgPower:
+      bucket.powers.length > 0
+        ? Number((bucket.powers.reduce((sum, value) => sum + value, 0) / bucket.powers.length).toFixed(2))
+        : null,
+    minTemp: Number(Math.min(...bucket.minTemps).toFixed(1)),
+    maxTemp: Number(Math.max(...bucket.maxTemps).toFixed(1)),
+    count: bucket.count,
   }));
 };
 
@@ -113,8 +146,8 @@ export const getStatisticsAnalytics = async (input?: StatisticsAnalyticsInput) =
   const rooms = await getRooms();
   const effectiveRooms = input?.roomIDs?.length ? rooms.filter((room) => input.roomIDs?.includes(room.roomID)) : rooms;
   const period = input?.period ?? 'day';
-  const { dateFrom, dateTo } = getPeriodRange(input);
-  const roomHistories = await buildRoomHistories(effectiveRooms, period, dateFrom, dateTo);
+  const { dateFrom, dateTo } = getHistoryRange(input);
+  const { roomHistories, historyMeta } = await buildRoomHistories(effectiveRooms, period, dateFrom, dateTo, input?.bucket);
 
   const setpointComparison = effectiveRooms.map((room) => {
     const latestPoint = getLatestPoint(roomHistories[room.roomID] ?? []);
@@ -175,6 +208,7 @@ export const getStatisticsAnalytics = async (input?: StatisticsAnalyticsInput) =
     selectedRoomHistory,
     roomHistories,
     buildingHistory,
+    historyMeta,
     recentEvents,
     setpointComparison,
     stateDistribution,

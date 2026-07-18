@@ -1,9 +1,11 @@
 import { TRPCError } from '@trpc/server';
-import type { Algorithm, PidParams } from '../types/climate';
+import type { Algorithm, HistoryBucket, HistoryPeriod, PidParams } from '../types/climate';
 import {
+  createRoom,
   getRoomById,
   getRoomDetailsById,
   getRooms,
+  softDeleteRoom,
   updateRoomAlgorithm,
   updateRoomPidParams,
   updateRoomSetpoint,
@@ -13,8 +15,16 @@ export const getAllRooms = () => {
   return getRooms();
 };
 
-export const getRoomData = (roomID: string) => {
-  return getRoomDetailsById(roomID);
+export const getRoomData = (
+  roomID: string,
+  historyOptions?: {
+    period?: HistoryPeriod;
+    dateFrom?: string;
+    dateTo?: string;
+    bucket?: HistoryBucket;
+  },
+) => {
+  return getRoomDetailsById(roomID, historyOptions);
 };
 
 export const getRoomByIdentifier = (roomID: string) => {
@@ -54,6 +64,44 @@ export const changePidParams = async (roomID: string, pidParams: PidParams) => {
     throw new TRPCError({
       code: 'NOT_FOUND',
       message: 'Room, settings, or device was not found',
+    });
+  }
+
+  return result;
+};
+
+export const addRoom = async (
+  input: {
+    name?: string;
+    location?: string;
+    floor?: number;
+    setpoint: number;
+    algorithm: Algorithm;
+    criticalTemperature?: number;
+    deviceUid?: string;
+    deviceName?: string;
+  },
+  userId: bigint,
+) => {
+  const result = await createRoom(input, userId);
+
+  if (!result) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Regulation algorithm was not found',
+    });
+  }
+
+  return result;
+};
+
+export const removeRoomSoftly = async (roomID: string, userId: bigint) => {
+  const result = await softDeleteRoom(roomID, userId);
+
+  if (!result) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: 'Active room was not found',
     });
   }
 

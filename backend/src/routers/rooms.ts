@@ -1,18 +1,29 @@
 import {
+  createRoomInputSchema,
   getRoomInputSchema,
+  softDeleteRoomInputSchema,
   updateAlgorithmInputSchema,
   updatePidParamsInputSchema,
   updateSetpointInputSchema,
 } from '../contracts/trpc';
-import { changeAlgorithm, changePidParams, changeSetpoint, getAllRooms, getRoomByIdentifier, getRoomData } from '../services/roomService';
-import { protectedProcedure, trpc } from '../trpcBase';
+import {
+  addRoom,
+  changeAlgorithm,
+  changePidParams,
+  changeSetpoint,
+  getAllRooms,
+  getRoomByIdentifier,
+  getRoomData,
+  removeRoomSoftly,
+} from '../services/roomService';
+import { adminProcedure, protectedProcedure, trpc } from '../trpcBase';
 
 const nestedRoomsRouter = trpc.router({
   getAll: protectedProcedure.query(() => {
     return getAllRooms();
   }),
   getById: protectedProcedure.input(getRoomInputSchema).query(({ input }) => {
-    return getRoomData(input.roomID);
+    return getRoomData(input.roomID, input);
   }),
   updateSetpoint: protectedProcedure.input(updateSetpointInputSchema).mutation(({ input }) => {
     return changeSetpoint(input.roomID, input.setpointValue);
@@ -23,6 +34,12 @@ const nestedRoomsRouter = trpc.router({
   updatePidParams: protectedProcedure.input(updatePidParamsInputSchema).mutation(({ input }) => {
     return changePidParams(input.roomID, input.pidParams);
   }),
+  create: adminProcedure.input(createRoomInputSchema).mutation(({ ctx, input }) => {
+    return addRoom(input, ctx.user.id);
+  }),
+  softDelete: adminProcedure.input(softDeleteRoomInputSchema).mutation(({ ctx, input }) => {
+    return removeRoomSoftly(input.roomID, ctx.user.id);
+  }),
 });
 
 export const roomsRouter = {
@@ -30,7 +47,7 @@ export const roomsRouter = {
   getRoom: protectedProcedure
     .input(getRoomInputSchema)
     .query(({ input }) => {
-      return getRoomData(input.roomID);
+      return getRoomData(input.roomID, input);
     }),
   getRooms: protectedProcedure.query(() => {
     return getAllRooms();
